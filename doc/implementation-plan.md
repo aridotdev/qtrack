@@ -2,13 +2,17 @@
 
 # QC Market Quality Tracker
 
-## Implementation Plan (Part 1 — Foundation & Architecture)
+## Implementation Plan
 
 **Version:** 1.0.0
 **Tanggal:** Juni 2026
 **Status:** Approved for Development
 **Project Owner:** QRCC
 **Technical Stack:** Nuxt 4 + Nuxt UI + SQLite + Drizzle ORM + Better Auth
+
+> **Dokumen Terkait:**
+> - [backend.md](backend.md) — Skema database lengkap, relasi tabel, dan pemetaan tabel ke halaman
+> - [frontend.md](frontend.md) — Spesifikasi halaman, elemen UI, dan standar antarmuka
 
 ---
 
@@ -76,25 +80,11 @@ Target implementasi MVP adalah dapat digunakan pada lingkungan internal dengan j
 
 Seluruh development harus mengikuti prinsip berikut:
 
-## Simplicity First
-
-Pilih solusi paling sederhana selama memenuhi kebutuhan bisnis.
-
-## Explicit Over Magic
-
-Kode harus mudah dibaca dibanding terlalu abstrak.
-
-## Type Safety
-
-Semua layer menggunakan TypeScript strict mode.
-
-## Feature Isolation
-
-Setiap fitur memiliki boundary yang jelas.
-
-## Progressive Enhancement
-
-MVP selesai terlebih dahulu sebelum fitur tambahan.
+- **Simplicity First** : Pilih solusi paling sederhana selama memenuhi kebutuhan bisnis.
+- **Explicit Over Magic** : Kode harus mudah dibaca dibanding terlalu abstrak.
+- **Type Safety** : Semua layer menggunakan TypeScript strict mode.
+- **Feature Isolation** : Setiap fitur memiliki boundary yang jelas.
+- **Progressive Enhancement** : MVP selesai terlebih dahulu sebelum fitur tambahan.
 
 ---
 
@@ -706,7 +696,7 @@ Output dari tahap Foundation & Architecture:
 * Environment development siap.
 * Tim siap memasuki tahap Database & Backend Implementation.
 
-# implementation-plan.md
+---
 
 # QC Market Quality Tracker
 
@@ -726,6 +716,8 @@ Output akhir yang diharapkan:
 * API pattern telah ditetapkan.
 * Semua business rule utama terdokumentasi.
 * Backend siap digunakan frontend.
+
+> Detail skema setiap tabel (kolom, tipe, constraint, index, catatan) tersedia di [backend.md](backend.md).
 
 ---
 
@@ -818,6 +810,8 @@ server/db/
 
 Untuk menghindari dependency error, schema dibuat dengan urutan berikut.
 
+> Tabel dibuat di `server/db/schema/` menggunakan Drizzle. Definisi lengkap setiap tabel tersedia di [backend.md](backend.md).
+
 ## Phase DB-01
 
 Independent Tables
@@ -871,318 +865,62 @@ Supporting Tables
 
 ---
 
-# 27. Users Schema Rules
+# 27. Database Schema (Ringkasan)
 
-Table:
+> Ringkasan singkat. Untuk spesifikasi lengkap (kolom, tipe, constraint, index), lihat [backend.md](backend.md).
 
-```text
-users
-```
-
-Rules:
-
-* email unique
-* role wajib
-* password hash Better Auth
-* created_at otomatis
-
-Allowed role:
-
-```text
-admin
-qrcc
-viewer
-```
+| Tabel              | Modul        | Keterangan Singkat                                         |
+| ------------------ | ------------ | ---------------------------------------------------------- |
+| users              | Auth         | User login; dikelola Better Auth                           |
+| products           | Master Data  | Daftar produk; memiliki banyak model                       |
+| product_models     | Master Data  | Model produk (SKU); harus terkait ke product               |
+| defect_types       | Master Data  | Jenis defect; digunakan di claim                           |
+| claims             | Core         | Catatan claim; kode generated `CLM-YYYY-NNN`               |
+| claim_status_logs  | Core         | Timeline perubahan status claim                            |
+| samples            | Sample       | Sample yang dikirim; kode generated `SMP-NNN`              |
+| sample_parts       | Sample       | Part dalam sample; minimal 1 per sample                    |
+| pqa_summaries      | PQA          | Hasil analisa; terhubung ke claim dan sample               |
+| attachments        -| Lampiran     | Polymorphic; terikat ke claim/sample/pqa                    |
+| monthly_reports    | Reports      | Laporan bulanan; unique per (year, month)                  |
 
 ---
 
-# 28. Products Schema Rules
+# 28. Business Rule Highlights
 
-Table:
+> Aturan bisnis utama yang harus diimplementasikan. Detail kolom ada di [backend.md](backend.md).
 
-```text
-products
-```
+## Claims
 
-Rules:
+* `claim_code` di-generate otomatis oleh service layer dengan format `CLM-YYYY-NNN`.
+* Status hanya boleh maju: `OPEN` → `WAITING_PQA` → `ON_PROGRESS` → `CLOSED`.
+* Setiap perubahan status otomatis mencatat log ke `claim_status_logs`.
+* Tidak dapat menghapus produk/model/defect yang masih dipakai di claim.
 
-* code unique
-* name wajib
-* is_active default true
+## Samples
 
----
+* `sample_code` di-generate otomatis dengan format `SMP-NNN`.
+* Minimal 1 `sample_parts`; dibuat dalam satu transaksi dengan sample.
+* Sample dengan `updated_at` > 7 hari yang lalu dan status bukan `COMPLETED`/`CANCELLED` ditampilkan badge `OVERDUE` di UI.
 
-# 29. Product Models Rules
+## PQA
 
-Table:
+* `cs_shared_at` diisi otomatis saat user klik "Mark as Shared".
+* Validasi: PQA harus terkait dengan claim dan sample yang ada.
 
-```text
-product_models
-```
+## Attachments
 
-Rules:
+* Validasi mime type dan ukuran file (max 10 MB) di service layer.
+* Path file: `uploads/YYYY/MM/filename`.
+* Relasi polymorphic via `entity_type` + `entity_id`.
 
-* harus memiliki product
-* sku unique
-* is_active default true
+## Monthly Reports
 
----
-
-# 30. Defect Types Rules
-
-Table:
-
-```text
-defect_types
-```
-
-Rules:
-
-* nama wajib
-* kategori opsional
-* is_active default true
+* Unique constraint `(year, month)`.
+* Laporan yang sudah `is_finalized` tidak dapat diedit.
 
 ---
 
-# 31. Claim Schema Rules
-
-Table:
-
-```text
-claims
-```
-
-Claim Code Format:
-
-```text
-CLM-YYYY-NNN
-```
-
-Contoh:
-
-```text
-CLM-2026-001
-```
-
-Rules:
-
-* product wajib
-* model wajib
-* defect wajib
-* source wajib
-* description wajib
-* status default OPEN
-
-Allowed status:
-
-```text
-OPEN
-WAITING_PQA
-ON_PROGRESS
-CLOSED
-```
-
----
-
-# 32. Claim Code Generator
-
-Generator dilakukan pada service layer.
-
-Flow:
-
-```text
-Ambil tahun saat ini
-↓
-Cari nomor terbesar tahun tersebut
-↓
-Tambah 1
-↓
-PadStart(3)
-```
-
-Contoh:
-
-```text
-CLM-2026-014
-```
-
----
-
-# 33. Sample Schema Rules
-
-Table:
-
-```text
-samples
-```
-
-Sample Code Format:
-
-```text
-SMP-NNN
-```
-
-Contoh:
-
-```text
-SMP-001
-```
-
-Rules:
-
-* claim wajib
-* receiver_name wajib
-* sent_at wajib
-* status wajib
-
-Allowed status:
-
-```text
-WAITING_SEND
-SENT
-ON_PROGRESS
-COMPLETED
-CANCELLED
-```
-
----
-
-# 34. Sample Parts Rules
-
-Table:
-
-```text
-sample_parts
-```
-
-Rules:
-
-* minimal 1 part
-* unit_count > 0
-* part_name wajib
-
-Contoh:
-
-Satu sample dapat memiliki:
-
-```text
-Motor : 2 pcs
-Bearing : 1 pcs
-PCB : 1 pcs
-```
-
----
-
-# 35. PQA Summary Rules
-
-Table:
-
-```text
-pqa_summaries
-```
-
-Rules:
-
-* claim wajib
-* sample wajib
-* root cause wajib
-* recommendation wajib
-
-Implementation Status:
-
-```text
-WAITING
-IMPLEMENTING
-DONE
-REJECTED
-```
-
-CS Shared Status:
-
-```text
-NOT_SHARED
-SHARED
-NOT_REQUIRED
-```
-
----
-
-# 36. Monthly Reports Rules
-
-Table:
-
-```text
-monthly_reports
-```
-
-Unique Constraint:
-
-```text
-year + month
-```
-
-Tidak boleh ada dua laporan bulan yang sama.
-
----
-
-# 37. Attachments Rules
-
-Table:
-
-```text
-attachments
-```
-
-Allowed Entity:
-
-```text
-claim
-sample
-pqa
-```
-
-Allowed Mime Type:
-
-```text
-image/jpeg
-image/png
-application/pdf
-application/vnd.openxmlformats-officedocument.wordprocessingml.document
-```
-
-Max Size:
-
-```text
-10 MB
-```
-
----
-
-# 38. Claim Status Logs
-
-Table:
-
-```text
-claim_status_logs
-```
-
-Harus dibuat otomatis ketika status berubah.
-
-Flow:
-
-```text
-OPEN
-↓
-WAITING_PQA
-↓
-ON_PROGRESS
-↓
-CLOSED
-```
-
----
-
-# 39. Seed Strategy
+# 29. Seed Strategy
 
 Tujuan:
 
@@ -1225,7 +963,7 @@ Minimal:
 
 ---
 
-# 40. Better Auth Strategy
+# 30. Better Auth Strategy
 
 Flow:
 
@@ -1243,7 +981,7 @@ Change Password
 
 ---
 
-# 41. Session Rules
+# 31. Session Rules
 
 Session Expiration:
 
@@ -1265,7 +1003,7 @@ Diizinkan
 
 ---
 
-# 42. API Design Principles
+# 32. API Design Principles
 
 Gunakan REST.
 
@@ -1291,7 +1029,7 @@ Contoh gagal:
 
 ---
 
-# 43. API Implementation Order
+# 33. API Implementation Order
 
 Backend dibangun dengan urutan berikut.
 
@@ -1387,7 +1125,7 @@ PDF Export
 
 ---
 
-# 44. Repository Pattern
+# 34. Repository Pattern
 
 Repository hanya bertugas mengakses database.
 
@@ -1415,7 +1153,7 @@ delete()
 
 ---
 
-# 45. Service Pattern
+# 35. Service Pattern
 
 Service bertugas menangani business logic.
 
@@ -1434,7 +1172,7 @@ Berisi:
 
 ---
 
-# 46. Transaction Rules
+# 36. Transaction Rules
 
 Gunakan transaction pada:
 
@@ -1470,7 +1208,7 @@ Claim
 
 ---
 
-# 47. Validation Strategy
+# 37. Validation Strategy
 
 Gunakan:
 
@@ -1494,7 +1232,7 @@ Repository
 
 ---
 
-# 48. Error Handling Rules
+# 38. Error Handling Rules
 
 HTTP Status:
 
@@ -1530,7 +1268,7 @@ Unexpected Error:
 
 ---
 
-# 49. Backend Testing Strategy
+# 39. Backend Testing Strategy
 
 Repository:
 
@@ -1558,7 +1296,7 @@ E2E Test
 
 ---
 
-# 50. Definition of Backend Complete
+# 40. Definition of Backend Complete
 
 Backend dianggap selesai apabila:
 
@@ -1587,7 +1325,7 @@ Output tahap ini:
 * Business rule terdokumentasi.
 * Backend siap diintegrasikan ke frontend.
 
-# implementation-plan.md
+---
 
 # QC Market Quality Tracker
 
@@ -1595,7 +1333,7 @@ Output tahap ini:
 
 ---
 
-# 51. Objective
+# 41. Objective
 
 Tahap ini bertujuan membangun antarmuka pengguna yang konsisten, mudah digunakan oleh tim QRCC, serta memiliki roadmap implementasi yang jelas.
 
@@ -1606,9 +1344,11 @@ Output akhir:
 * Frontend siap digunakan pengguna.
 * Roadmap development dapat dijadikan checklist harian.
 
+> Spesifikasi lengkap setiap halaman (elemen, flow user, dan standar UI) tersedia di [frontend.md](frontend.md).
+
 ---
 
-# 52. Frontend Architecture Principles
+# 42. Frontend Architecture Principles
 
 Frontend harus mengikuti prinsip berikut.
 
@@ -1642,7 +1382,7 @@ Gunakan composable sebelum membuat global state.
 
 ---
 
-# 53. Frontend Directory Structure
+# 43. Frontend Directory Structure
 
 ```text
 app/
@@ -1658,7 +1398,7 @@ app/
 
 ---
 
-# 54. Layout Strategy
+# 44. Layout Strategy
 
 ## Public Layout
 
@@ -1684,11 +1424,15 @@ Master Data
 Profile
 ```
 
+> Spesifikasi lengkap setiap halaman (elemen per halaman, flow user, dan standar UI) tersedia di [frontend.md](frontend.md).
+
 ---
 
-# 55. Sidebar Navigation
+# 45. Sidebar Navigation
 
-Urutan menu:
+> Detail lengkap urutan menu dan hak akses per role tersedia di [frontend.md](frontend.md) bagian "Navigasi Sidebar".
+
+Urutan menu ringkas:
 
 ```text
 Dashboard
@@ -1703,7 +1447,7 @@ Logout
 
 ---
 
-# 56. Route Protection
+# 46. Route Protection
 
 Middleware:
 
@@ -1725,49 +1469,21 @@ Authorized?
 
 ---
 
-# 57. Role-Based Navigation
+# 47. Role-Based Navigation
 
-## Admin
+> Tabel lengkap hak akses menu per role tersedia di [frontend.md](frontend.md) bagian "Navigasi Sidebar".
 
-Melihat:
+Ringkasan:
 
-```text
-Semua menu
-```
-
----
-
-## QRCC
-
-Melihat:
-
-```text
-Dashboard
-Claims
-Samples
-PQA
-Reports
-Profile
-Logout
-```
+* **Admin** — akses penuh ke semua menu.
+* **QRCC** — akses Claims, Samples, PQA, Reports (read-write); tanpa Master Data.
+* **Viewer** — akses read-only ke Dashboard, Claims, Reports, dan Profile.
 
 ---
 
-## Viewer
+# 48. Page Implementation Order
 
-Melihat:
-
-```text
-Dashboard
-Claims (Read Only)
-Reports (Read Only)
-Profile
-Logout
-```
-
----
-
-# 58. Page Implementation Order
+> Detail halaman (elemen, flow user) tersedia di [frontend.md](frontend.md).
 
 Frontend dibangun dengan urutan berikut.
 
@@ -1825,259 +1541,7 @@ Profile
 
 ---
 
-# 59. Dashboard Design
-
-Widget utama:
-
-## KPI Cards
-
-Menampilkan:
-
-* Total Claim
-* Open
-* Waiting PQA
-* Closed
-
----
-
-## Charts
-
-Menampilkan:
-
-* Trend 12 bulan
-* Top 5 defect
-
----
-
-## Latest Claims
-
-Menampilkan:
-
-* 10 claim terbaru
-
----
-
-## Filters
-
-Menampilkan:
-
-* Date Range
-* Product
-* Model
-
----
-
-# 60. Claims Module Design
-
-Halaman:
-
-```text
-/claims
-```
-
-Komponen:
-
-```text
-ClaimTable
-ClaimFilters
-ClaimForm
-ClaimStatusBadge
-ClaimActions
-```
-
----
-
-## Detail Claim
-
-Halaman:
-
-```text
-/claims/[id]
-```
-
-Menampilkan:
-
-### Informasi Claim
-
-* Claim Code
-* Product
-* Model
-* Defect
-* Source
-* Description
-
----
-
-### Sample Terkait
-
----
-
-### PQA Summary
-
----
-
-### Timeline Status
-
----
-
-### Attachment
-
----
-
-### Export PDF
-
----
-
-# 61. Claims UX Rules
-
-User harus dapat:
-
-* Search maksimal 2 klik.
-* Filter tanpa reload.
-* Quick update status.
-* Melihat detail tanpa kehilangan konteks.
-
----
-
-# 62. Samples Module Design
-
-Halaman:
-
-```text
-/samples
-```
-
-Komponen:
-
-```text
-SampleTable
-SampleForm
-SampleStatusBadge
-SamplePartsEditor
-```
-
----
-
-## Sample Parts Editor
-
-Mendukung:
-
-```text
-Tambah Part
-Edit Part
-Hapus Part
-```
-
-Minimal:
-
-```text
-1 Part
-```
-
----
-
-# 63. Sample Warning Rules
-
-Sample lebih dari 7 hari tanpa update:
-
-Tampilkan badge:
-
-```text
-OVERDUE
-```
-
-Prioritas:
-
-```text
-High
-```
-
----
-
-# 64. PQA Module Design
-
-Halaman:
-
-```text
-/pqa
-```
-
-Komponen:
-
-```text
-PqaTable
-PqaForm
-PqaStatusBadge
-PqaShareButton
-```
-
----
-
-## Mark Shared Flow
-
-User klik:
-
-```text
-Mark as Shared
-```
-
-↓
-
-Sistem:
-
-```text
-Set status = SHARED
-Set cs_shared_at = NOW
-```
-
----
-
-# 65. Reports Module Design
-
-Halaman:
-
-```text
-/reports
-```
-
-Fitur:
-
-* Generate laporan
-* Edit notes
-* Finalize
-* Export Excel
-* View history
-
----
-
-# 66. Master Data Design
-
-Tabs:
-
-```text
-Products
-Models
-Defect Types
-Users
-```
-
-Admin only.
-
----
-
-# 67. Profile Design
-
-Fitur:
-
-```text
-Edit Name
-Change Password
-View Role
-```
-
----
-
-# 68. Composable Strategy
+# 49. Composable Strategy
 
 Tujuan:
 
@@ -2144,7 +1608,7 @@ Fetch Top Defect
 
 ---
 
-# 69. State Management Strategy
+# 50. State Management Strategy
 
 MVP:
 
@@ -2164,93 +1628,21 @@ Alasan:
 
 ---
 
-# 70. Table Strategy
+# 51. UI Standards (Ringkasan)
 
-Semua tabel wajib mendukung:
+> Detail standar UI (tabel, form, notifikasi, loading, empty state, konfirmasi aksi destruktif) tersedia di [frontend.md](frontend.md) bagian "Standar UI".
 
-* Pagination
-* Search
-* Sorting
-* Filter
-* Empty State
-* Loading State
+Ringkasan poin utama:
 
----
-
-# 71. Form Strategy
-
-Gunakan:
-
-```text
-Nuxt UI Form
-+
-Zod
-```
-
-Flow:
-
-```text
-Input
-↓
-Zod
-↓
-API
-↓
-Toast
-```
+* **Tabel:** wajib ada pagination, search, sort, filter, loading state (skeleton), dan empty state.
+* **Form:** validasi Zod sebelum submit; tampil pesan error per field.
+* **Notifikasi:** toast sukses / error / warning setelah setiap aksi.
+* **Loading:** gunakan skeleton saat data sedang dimuat.
+* **Aksi destruktif** (hapus, finalize): selalu minta konfirmasi terlebih dahulu.
 
 ---
 
-# 72. Toast Notifications
-
-Sukses:
-
-```text
-Data berhasil disimpan.
-```
-
-Error:
-
-```text
-Terjadi kesalahan.
-```
-
-Warning:
-
-```text
-Periksa kembali input Anda.
-```
-
----
-
-# 73. Loading Strategy
-
-Gunakan:
-
-```text
-Skeleton
-```
-
-untuk:
-
-* Table
-* Dashboard
-* Detail Page
-
----
-
-# 74. Empty State Strategy
-
-Contoh:
-
-```text
-Belum ada data.
-Klik tombol Tambah untuk membuat data baru.
-```
-
----
-
-# 75. Development Roadmap
+# 52. Development Roadmap
 
 ## Phase 0
 
@@ -2428,7 +1820,7 @@ MVP siap digunakan.
 
 ---
 
-# 76. Total Estimation
+# 53. Total Estimation
 
 Estimasi developer tunggal:
 
@@ -2445,7 +1837,7 @@ Dengan asumsi:
 
 ---
 
-# 77. Daily Workflow Recommendation
+# 54. Daily Workflow Recommendation
 
 Setiap task mengikuti alur:
 
@@ -2465,7 +1857,7 @@ Commit
 
 ---
 
-# 78. Git Commit Convention
+# 55. Git Commit Convention
 
 Format:
 
@@ -2484,7 +1876,7 @@ docs(report): update implementation plan
 
 ---
 
-# 79. Definition of Frontend Complete
+# 56. Definition of Frontend Complete
 
 Frontend dianggap selesai apabila:
 
@@ -2512,7 +1904,7 @@ Output tahap ini:
 * Estimasi proyek tersedia.
 * Frontend siap memasuki tahap Testing & Deployment.
 
-# implementation-plan.md
+---
 
 # QC Market Quality Tracker
 
@@ -2520,7 +1912,7 @@ Output tahap ini:
 
 ---
 
-# 80. Objective
+# 57. Objective
 
 Tahap ini bertujuan memastikan aplikasi yang telah dikembangkan benar-benar siap digunakan oleh pengguna akhir.
 
@@ -2533,7 +1925,7 @@ Output akhir:
 
 ---
 
-# 81. Quality Assurance Principles
+# 58. Quality Assurance Principles
 
 Seluruh pengujian harus mengikuti prinsip berikut:
 
@@ -2561,7 +1953,7 @@ Pastikan perubahan baru tidak merusak fitur lama.
 
 ---
 
-# 82. Testing Pyramid
+# 59. Testing Pyramid
 
 Strategi testing menggunakan pendekatan berikut:
 
@@ -2577,7 +1969,7 @@ Strategi testing menggunakan pendekatan berikut:
 
 ---
 
-# 83. Unit Testing Strategy
+# 60. Unit Testing Strategy
 
 Tool:
 
@@ -2610,7 +2002,7 @@ Prioritas:
 
 ---
 
-# 84. Integration Testing Strategy
+# 61. Integration Testing Strategy
 
 Target:
 
@@ -2644,7 +2036,7 @@ Reports:
 
 ---
 
-# 85. E2E Testing Strategy
+# 62. E2E Testing Strategy
 
 Tool:
 
@@ -2660,7 +2052,7 @@ Chromium
 
 ---
 
-# 86. Critical User Journeys
+# 63. Critical User Journeys
 
 ## Journey 1
 
@@ -2740,7 +2132,7 @@ Export PDF
 
 ---
 
-# 87. Manual Testing Checklist
+# 64. Manual Testing Checklist
 
 Semua form harus diuji terhadap:
 
@@ -2772,7 +2164,7 @@ Semua form harus diuji terhadap:
 
 ---
 
-# 88. UAT Strategy
+# 65. UAT Strategy
 
 User Acceptance Test dilakukan oleh:
 
@@ -2804,7 +2196,7 @@ Memvalidasi:
 
 ---
 
-# 89. UAT Environment
+# 66. UAT Environment
 
 Gunakan:
 
@@ -2820,7 +2212,7 @@ pnpm dev
 
 ---
 
-# 90. UAT Acceptance Checklist
+# 67. UAT Acceptance Checklist
 
 ## Authentication
 
@@ -2873,7 +2265,7 @@ pnpm dev
 
 ---
 
-# 91. Performance Targets
+# 68. Performance Targets
 
 Dashboard:
 
@@ -2907,7 +2299,7 @@ Excel Export:
 
 ---
 
-# 92. Security Testing Checklist
+# 69. Security Testing Checklist
 
 * [ ] Password tidak tersimpan plaintext.
 * [ ] Route terlindungi.
@@ -2918,7 +2310,7 @@ Excel Export:
 
 ---
 
-# 93. Backup Strategy
+# 70. Backup Strategy
 
 Database:
 
@@ -2957,7 +2349,7 @@ backup/
 
 ---
 
-# 94. Recovery Strategy
+# 71. Recovery Strategy
 
 Flow:
 
@@ -2975,7 +2367,7 @@ Smoke Test
 
 ---
 
-# 95. Build Strategy
+# 72. Build Strategy
 
 Build menggunakan:
 
@@ -2991,7 +2383,7 @@ Output:
 
 ---
 
-# 96. Development Commands
+# 73. Development Commands
 
 Install:
 
@@ -3058,7 +2450,7 @@ pnpm preview
 
 ---
 
-# 97. First-Time Setup Guide
+# 74. First-Time Setup Guide
 
 ## Step 1
 
@@ -3126,7 +2518,7 @@ pnpm dev
 
 ---
 
-# 98. Production Build Verification
+# 75. Production Build Verification
 
 Setelah build:
 
@@ -3141,7 +2533,7 @@ Pastikan:
 
 ---
 
-# 99. Go-Live Checklist
+# 76. Go-Live Checklist
 
 Infrastructure:
 
@@ -3175,7 +2567,7 @@ Business:
 
 ---
 
-# 100. Definition of Done (DoD)
+# 77. Definition of Done (DoD)
 
 Proyek dianggap selesai apabila:
 
@@ -3211,7 +2603,7 @@ Proyek dianggap selesai apabila:
 
 ---
 
-# 101. Future Backlog
+# 78. Future Backlog
 
 Fitur setelah MVP:
 
@@ -3247,7 +2639,7 @@ Fitur setelah MVP:
 
 ---
 
-# 102. Project Success Criteria
+# 79. Project Success Criteria
 
 Proyek dianggap sukses apabila:
 
@@ -3283,3 +2675,7 @@ Deliverables akhir:
 # End of Document
 
 Dengan selesainya Part 1–4, Implementation Plan ini dapat digunakan sebagai blueprint development dari tahap setup proyek hingga aplikasi QC Market Quality Tracker siap dijalankan di local server dan digunakan oleh tim QRCC.
+
+> **Dokumen terkait:**
+> - [backend.md](backend.md) — Skema database, relasi tabel, pemetaan tabel ke halaman
+> - [frontend.md](frontend.md) — Spesifikasi halaman, elemen UI, standar antarmuka, navigasi
