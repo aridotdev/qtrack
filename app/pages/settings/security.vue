@@ -4,20 +4,25 @@ import type { FormError } from '@nuxt/ui'
 
 const passwordSchema = z.object({
   current: z.string().min(8, 'Must be at least 8 characters'),
-  new: z.string().min(8, 'Must be at least 8 characters')
+  new: z.string().min(8, 'Must be at least 8 characters'),
+  confirm: z.string().min(8, 'Must be at least 8 characters')
 })
 
 type PasswordSchema = z.output<typeof passwordSchema>
 
 const password = reactive<Partial<PasswordSchema>>({
   current: '',
-  new: ''
+  new: '',
+  confirm: ''
 })
 
 const validate = (state: Partial<PasswordSchema>): FormError[] => {
   const errors: FormError[] = []
   if (state.current && state.new && state.current === state.new) {
     errors.push({ name: 'new', message: 'Passwords must be different' })
+  }
+  if (state.new && state.confirm && state.new !== state.confirm) {
+    errors.push({ name: 'confirm', message: 'Passwords do not match' })
   }
   return errors
 }
@@ -44,6 +49,8 @@ const validate = (state: Partial<PasswordSchema>): FormError[] => {
         />
       </UFormField>
 
+      <hr class="border-t border-neutral-200 dark:border-neutral-700">
+
       <UFormField name="new">
         <UInput
           v-model="password.new"
@@ -53,17 +60,16 @@ const validate = (state: Partial<PasswordSchema>): FormError[] => {
         />
       </UFormField>
 
+      <UFormField name="confirm">
+        <UInput
+          v-model="password.confirm"
+          type="password"
+          placeholder="Confirm new password"
+          class="w-full"
+        />
+      </UFormField>
+
       <UButton label="Update" class="w-fit" type="submit" />
     </UForm>
-  </UPageCard>
-
-  <UPageCard
-    title="Account"
-    description="No longer want to use our service? You can delete your account here. This action is not reversible. All information related to this account will be deleted permanently."
-    class="bg-linear-to-tl from-error/10 from-5% to-default"
-  >
-    <template #footer>
-      <UButton label="Delete account" color="error" />
-    </template>
   </UPageCard>
 </template>
