@@ -13,27 +13,33 @@ const filteredMembers = computed(() => {
 </script>
 
 <template>
-  <div>
+  <SettingsLayout
+    title="Members"
+    description="Kelola anggota tim yang memiliki akses ke sistem."
+  >
     <UPageCard
-      title="Members"
-      description="Invite new members by email address."
+      title="Daftar Members"
+      description="Undang anggota baru melalui email."
       variant="naked"
       orientation="horizontal"
       class="mb-4"
     >
       <UButton
-        label="Invite people"
+        label="Undang Orang"
         color="neutral"
         class="w-fit lg:ms-auto"
       />
     </UPageCard>
 
-    <UPageCard variant="subtle" :ui="{ container: 'p-0 sm:p-0 gap-y-0', wrapper: 'items-stretch', header: 'p-4 mb-0 border-b border-default' }">
+    <UPageCard
+      variant="subtle"
+      :ui="{ container: 'p-0 sm:p-0 gap-y-0', wrapper: 'items-stretch', header: 'p-4 mb-0 border-b border-default' }"
+    >
       <template #header>
         <UInput
           v-model="q"
           icon="i-lucide-search"
-          placeholder="Search members"
+          placeholder="Cari member..."
           autofocus
           class="w-full"
         />
@@ -41,5 +47,5 @@ const filteredMembers = computed(() => {
 
       <SettingsMembersList :members="filteredMembers" />
     </UPageCard>
-  </div>
+  </SettingsLayout>
 </template>

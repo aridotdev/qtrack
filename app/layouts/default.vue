@@ -7,24 +7,44 @@ const toast = useToast()
 const open = ref(false)
 
 const links = [[{
-  label: 'Home',
-  icon: 'i-lucide-house',
-  to: '/',
+  label: 'Dashboard',
+  icon: 'i-lucide-layout-dashboard',
+  to: '/dashboard',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Inbox',
-  icon: 'i-lucide-inbox',
-  to: '/inbox',
-  badge: '4',
+  label: 'Claims',
+  icon: 'i-lucide-file-warning',
+  to: '/claims',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Customers',
-  icon: 'i-lucide-users',
-  to: '/customers',
+  label: 'Samples',
+  icon: 'i-lucide-package',
+  to: '/samples',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'PQA Summary',
+  icon: 'i-lucide-clipboard-check',
+  to: '/pqa',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Reports',
+  icon: 'i-lucide-file-text',
+  to: '/reports',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Master Data',
+  icon: 'i-lucide-database',
+  to: '/master',
   onSelect: () => {
     open.value = false
   }
@@ -35,41 +55,69 @@ const links = [[{
   defaultOpen: true,
   type: 'trigger',
   children: [{
-    label: 'General',
-    to: '/settings',
-    exact: true,
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Members',
-    to: '/settings/members',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Notifications',
-    to: '/settings/notifications',
+    label: 'Profile',
+    icon: 'i-lucide-user',
+    to: '/settings/profile',
     onSelect: () => {
       open.value = false
     }
   }, {
     label: 'Security',
+    icon: 'i-lucide-shield',
     to: '/settings/security',
     onSelect: () => {
       open.value = false
     }
+  }, {
+    label: 'Notifications',
+    icon: 'i-lucide-bell',
+    to: '/settings/notifications',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Members',
+    icon: 'i-lucide-users',
+    to: '/settings/members',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Claims Settings',
+    icon: 'i-lucide-file-warning',
+    to: '/settings/claims',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Samples Settings',
+    icon: 'i-lucide-package',
+    to: '/settings/samples',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'PQA Settings',
+    icon: 'i-lucide-clipboard-check',
+    to: '/settings/pqa',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Reports Settings',
+    icon: 'i-lucide-file-text',
+    to: '/settings/reports',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Master Data Settings',
+    icon: 'i-lucide-database',
+    to: '/settings/master',
+    onSelect: () => {
+      open.value = false
+    }
   }]
-}], [{
-  label: 'Feedback',
-  icon: 'i-lucide-message-circle',
-  to: 'https://github.com/nuxt-ui-templates/dashboard',
-  target: '_blank'
-}, {
-  label: 'Help & Support',
-  icon: 'i-lucide-info',
-  to: 'https://github.com/nuxt-ui-templates/dashboard',
-  target: '_blank'
 }]] satisfies NavigationMenuItem[][]
 
 const groups = computed(() => [{
@@ -137,14 +185,6 @@ onMounted(async () => {
           orientation="vertical"
           tooltip
           popover
-        />
-
-        <UNavigationMenu
-          :collapsed="collapsed"
-          :items="links[1]"
-          orientation="vertical"
-          tooltip
-          class="mt-auto"
         />
       </template>
 

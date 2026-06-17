@@ -9,63 +9,75 @@ const state = reactive<{ [key: string]: boolean }>({
 
 const sections = [{
   title: 'Notification channels',
-  description: 'Where can we notify you?',
+  description: 'Pilih channel notifikasi yang ingin Anda gunakan.',
   fields: [{
     name: 'email',
     label: 'Email',
-    description: 'Receive a daily email digest.'
+    description: 'Terima ringkasan harian via email.'
   }, {
     name: 'desktop',
     label: 'Desktop',
-    description: 'Receive desktop notifications.'
+    description: 'Terima notifikasi desktop.'
   }]
 }, {
-  title: 'Account updates',
-  description: 'Receive updates about Nuxt UI.',
+  title: 'Update Sistem',
+  description: 'Atur jenis update yang ingin diterima.',
   fields: [{
     name: 'weekly_digest',
-    label: 'Weekly digest',
-    description: 'Receive a weekly digest of news.'
+    label: 'Ringkasan Mingguan',
+    description: 'Terima ringkasan mingguan.'
   }, {
     name: 'product_updates',
-    label: 'Product updates',
-    description: 'Receive a monthly email with all new features and updates.'
+    label: 'Update Produk',
+    description: 'Terima info fitur dan update terbaru.'
   }, {
     name: 'important_updates',
-    label: 'Important updates',
-    description: 'Receive emails about important updates like security fixes, maintenance, etc.'
+    label: 'Update Penting',
+    description: 'Terima email terkait keamanan dan maintenance.'
   }]
 }]
 
 async function onChange() {
-  // Do something with data
+  // TODO: simpan preferensi notifikasi ke backend
   console.log(state)
 }
 </script>
 
 <template>
-  <div v-for="(section, index) in sections" :key="index">
-    <UPageCard
-      :title="section.title"
-      :description="section.description"
-      variant="naked"
-      class="mb-4"
-    />
+  <SettingsLayout
+    title="Notifications"
+    description="Atur bagaimana sistem memberi notifikasi kepada Anda."
+  >
+    <div
+      v-for="(section, index) in sections"
+      :key="index"
+      class="mb-6"
+    >
+      <UPageCard
+        :title="section.title"
+        :description="section.description"
+        variant="naked"
+        class="mb-4"
+      />
 
-    <UPageCard variant="subtle" :ui="{ container: 'divide-y divide-default' }">
-      <UFormField
-        v-for="field in section.fields"
-        :key="field.name"
-        :name="field.name"
-        :label="field.label"
-        :description="field.description"
-        class="flex items-center justify-between not-last:pb-4 gap-2"
+      <UPageCard
+        variant="subtle"
+        :ui="{ container: 'divide-y divide-default' }"
       >
-        <USwitch
-          v-model="state[field.name]"
-          @update:model-value="onChange"
-        />
-      </UFormField>
-    </UPageCard>
-  </div>
+        <UFormField
+          v-for="field in section.fields"
+          :key="field.name"
+          :name="field.name"
+          :label="field.label"
+          :description="field.description"
+          class="flex items-center justify-between not-last:pb-4 gap-2"
+        >
+          <USwitch
+            v-model="state[field.name]"
+            @update:model-value="onChange"
+          />
+        </UFormField>
+      </UPageCard>
+    </div>
+  </SettingsLayout>
 </template>

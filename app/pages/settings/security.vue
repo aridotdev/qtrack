@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import * as z from 'zod'
-import type { FormError } from '@nuxt/ui'
+import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+
+const toast = useToast()
 
 const passwordSchema = z.object({
-  current: z.string().min(8, 'Must be at least 8 characters'),
-  new: z.string().min(8, 'Must be at least 8 characters'),
-  confirm: z.string().min(8, 'Must be at least 8 characters')
+  current: z.string().min(8, 'Minimal 8 karakter'),
+  new: z.string().min(8, 'Minimal 8 karakter'),
+  confirm: z.string().min(8, 'Minimal 8 karakter')
 })
 
 type PasswordSchema = z.output<typeof passwordSchema>
@@ -19,57 +21,85 @@ const password = reactive<Partial<PasswordSchema>>({
 const validate = (state: Partial<PasswordSchema>): FormError[] => {
   const errors: FormError[] = []
   if (state.current && state.new && state.current === state.new) {
-    errors.push({ name: 'new', message: 'Passwords must be different' })
+    errors.push({ name: 'new', message: 'Password baru harus berbeda dari yang lama' })
   }
   if (state.new && state.confirm && state.new !== state.confirm) {
-    errors.push({ name: 'confirm', message: 'Passwords do not match' })
+    errors.push({ name: 'confirm', message: 'Konfirmasi password tidak cocok' })
   }
   return errors
+}
+
+async function onSubmit(event: FormSubmitEvent<PasswordSchema>) {
+  toast.add({
+    title: 'Berhasil',
+    description: 'Password berhasil diperbarui.',
+    icon: 'i-lucide-check',
+    color: 'success'
+  })
+  console.log(event.data)
+  password.current = ''
+  password.new = ''
+  password.confirm = ''
 }
 </script>
 
 <template>
-  <UPageCard
-    title="Password"
-    description="Confirm your current password before setting a new one."
-    variant="subtle"
+  <SettingsLayout
+    title="Security"
+    description="Kelola password dan keamanan akun Anda."
   >
-    <UForm
-      :schema="passwordSchema"
-      :state="password"
-      :validate="validate"
-      class="flex flex-col gap-4 max-w-xs"
+    <UPageCard
+      title="Password"
+      description="Konfirmasi password saat ini sebelum mengubahnya."
+      variant="subtle"
     >
-      <UFormField name="current">
-        <UInput
-          v-model="password.current"
-          type="password"
-          placeholder="Current password"
-          class="w-full"
-        />
-      </UFormField>
+      <UForm
+        :schema="passwordSchema"
+        :state="password"
+        :validate="validate"
+        class="flex flex-col gap-4 max-w-md"
+        @submit="onSubmit"
+      >
+        <UFormField name="current" label="Password Saat Ini">
+          <UInput
+            v-model="password.current"
+            type="password"
+            placeholder="Password saat ini"
+            autocomplete="current-password"
+            class="w-full"
+          />
+        </UFormField>
 
-      <hr class="border-t border-neutral-200 dark:border-neutral-700">
+        <USeparator />
 
-      <UFormField name="new">
-        <UInput
-          v-model="password.new"
-          type="password"
-          placeholder="New password"
-          class="w-full"
-        />
-      </UFormField>
+        <UFormField name="new" label="Password Baru" description="Minimal 8 karakter.">
+          <UInput
+            v-model="password.new"
+            type="password"
+            placeholder="Password baru"
+            autocomplete="new-password"
+            class="w-full"
+          />
+        </UFormField>
 
-      <UFormField name="confirm">
-        <UInput
-          v-model="password.confirm"
-          type="password"
-          placeholder="Confirm new password"
-          class="w-full"
-        />
-      </UFormField>
+        <UFormField name="confirm" label="Konfirmasi Password Baru">
+          <UInput
+            v-model="password.confirm"
+            type="password"
+            placeholder="Ulangi password baru"
+            autocomplete="new-password"
+            class="w-full"
+          />
+        </UFormField>
 
-      <UButton label="Update" class="w-fit" type="submit" />
-    </UForm>
-  </UPageCard>
+        <div>
+          <UButton
+            label="Update Password"
+            type="submit"
+            color="neutral"
+          />
+        </div>
+      </UForm>
+    </UPageCard>
+  </SettingsLayout>
 </template>
