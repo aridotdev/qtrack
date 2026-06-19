@@ -11,7 +11,21 @@
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
-    <SettingsUnderConstruction feature="Pengaturan Claims" />
-  </div>
+  <UDashboardPanel id="customers">
+    <template #header>
+      <UDashboardNavbar title="Customers">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+
+        <template #right>
+          <CustomersAddModal />
+        </template>
+      </UDashboardNavbar>
+    </template>
+
+    <template #body>
+      <SettingsUnderConstruction feature="Pengaturan Claims" />
+    </template>
+  </UDashboardPanel>
 </template>

@@ -11,18 +11,18 @@ import type { NavigationMenuItem } from '@nuxt/ui'
  * - Bulk import / export master data
  */
 const links = [[{
-  label: 'General',
-  icon: 'i-lucide-user',
-  to: '/master',
+  label: 'Products',
+  icon: 'i-lucide-tv',
+  to: '/masters',
   exact: true
 }, {
   label: 'Models',
   icon: 'i-lucide-users',
-  to: '/master/models'
+  to: '/masters/models'
 }, {
   label: 'Defect Types',
   icon: 'i-lucide-bell',
-  to: '/master/defect-types'
+  to: '/masters/defect-types'
 }]] satisfies NavigationMenuItem[][]
 </script>
 
