@@ -63,9 +63,9 @@ const links = [[{
       open.value = false
     }
   }, {
-    label: 'Security',
-    icon: 'i-lucide-shield',
-    to: '/settings/security',
+    label: 'Members',
+    icon: 'i-lucide-users',
+    to: '/settings/members',
     onSelect: () => {
       open.value = false
     }
@@ -77,44 +77,9 @@ const links = [[{
       open.value = false
     }
   }, {
-    label: 'Members',
-    icon: 'i-lucide-users',
-    to: '/settings/members',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Claims Settings',
-    icon: 'i-lucide-file-warning',
-    to: '/settings/claims',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Samples Settings',
-    icon: 'i-lucide-package',
-    to: '/settings/samples',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'PQA Settings',
-    icon: 'i-lucide-clipboard-check',
-    to: '/settings/pqa',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Reports Settings',
-    icon: 'i-lucide-file-text',
-    to: '/settings/reports',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Master Data Settings',
-    icon: 'i-lucide-database',
-    to: '/settings/master',
+    label: 'Security',
+    icon: 'i-lucide-shield',
+    to: '/settings/security',
     onSelect: () => {
       open.value = false
     }
