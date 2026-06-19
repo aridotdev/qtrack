@@ -44,7 +44,7 @@ const links = [[{
 }, {
   label: 'Master Data',
   icon: 'i-lucide-database',
-  to: '/master',
+  to: '/masters',
   onSelect: () => {
     open.value = false
   }

@@ -4,7 +4,7 @@ import type { FormSubmitEvent } from '@nuxt/ui'
 
 const schema = z.object({
   name: z.string().min(2, 'Too short'),
-  email: z.string().email('Invalid email')
+  email: z.email('Invalid email')
 })
 const open = ref(false)
 
@@ -23,8 +23,8 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <UModal v-model:open="open" title="New customer" description="Add a new customer to the database">
-    <UButton label="New customer" icon="i-lucide-plus" />
+  <UModal v-model:open="open" title="New claim" description="Add a new claim to the database">
+    <UButton label="New claim" icon="i-lucide-plus" />
 
     <template #body>
       <UForm

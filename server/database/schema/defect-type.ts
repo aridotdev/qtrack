@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm'
 import { integer, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 
 /**
  * Tabel: defect_types
@@ -15,12 +14,10 @@ export const defectTypes = sqliteTable('defect_types', {
   name: text().notNull(),
   category: text(), // Kategori defect bersifat opsional sesuai dokumen backend.md.
   isActive: integer({ mode: 'boolean' }).notNull().default(true),
-  createdBy: text()
-    .notNull()
-    .references((): AnySQLiteColumn => users.id),
-  updatedBy: text()
-    .notNull()
-    .references((): AnySQLiteColumn => users.id),
+  // Sementara belum memakai FK ke users karena Better Auth schema
+  // akan diintegrasikan pada fase berikutnya.
+  createdBy: text().notNull(),
+  updatedBy: text().notNull(),
 
   // Unix timestamp (ms).
   createdAt: integer({ mode: 'timestamp_ms' })
@@ -38,12 +35,6 @@ table => [
   index('defect_types_created_at_idx').on(table.createdAt)
 ]
 )
-
-// Tabel `users` dikelola oleh Better Auth, tetapi kolom FK-nya tetap
-// bertipe text (UUID) sesuai dokumen backend.md. Kita deklarasikan
-// nilai minimalnya secara lokal agar tidak terjadi circular import
-// sambil mempertahankan type-safety dari `references()`.
-declare const users: { id: AnySQLiteColumn }
 
 export type DefectType = typeof defectTypes.$inferSelect
 export type NewDefectType = typeof defectTypes.$inferInsert

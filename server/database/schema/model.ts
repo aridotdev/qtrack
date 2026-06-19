@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm'
 import { integer, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { products } from './product'
 
 /**
@@ -21,12 +20,10 @@ export const productModels = sqliteTable('product_models', {
     .notNull()
     .references(() => products.id, { onDelete: 'restrict' }),
   isActive: integer({ mode: 'boolean' }).notNull().default(true),
-  createdBy: text()
-    .notNull()
-    .references((): AnySQLiteColumn => users.id),
-  updatedBy: text()
-    .notNull()
-    .references((): AnySQLiteColumn => users.id),
+  // Sementara belum memakai FK ke users karena Better Auth schema
+  // akan diintegrasikan pada fase berikutnya.
+  createdBy: text().notNull(),
+  updatedBy: text().notNull(),
 
   // Unix timestamp (ms).
   createdAt: integer({ mode: 'timestamp_ms' })
@@ -46,12 +43,6 @@ table => [
   index('product_models_product_id_is_active_idx').on(table.productId, table.isActive)
 ]
 )
-
-// Tabel `users` dikelola oleh Better Auth, tetapi kolom FK-nya tetap
-// bertipe text (UUID) sesuai dokumen backend.md. Kita deklarasikan
-// nilai minimalnya secara lokal agar tidak terjadi circular import
-// sambil mempertahankan type-safety dari `references()`.
-declare const users: { id: AnySQLiteColumn }
 
 export type ProductModel = typeof productModels.$inferSelect
 export type NewProductModel = typeof productModels.$inferInsert
