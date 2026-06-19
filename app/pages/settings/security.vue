@@ -44,62 +44,54 @@ async function onSubmit(event: FormSubmitEvent<PasswordSchema>) {
 </script>
 
 <template>
-  <SettingsLayout
-    title="Security"
-    description="Kelola password dan keamanan akun Anda."
+  <UPageCard
+    title="Password"
+    description="Konfirmasi password saat ini sebelum mengubahnya."
+    variant="subtle"
   >
-    <UPageCard
-      title="Password"
-      description="Konfirmasi password saat ini sebelum mengubahnya."
-      variant="subtle"
+    <UForm
+      :schema="passwordSchema"
+      :state="password"
+      :validate="validate"
+      class="flex flex-col gap-4 max-w-md"
+      @submit="onSubmit"
     >
-      <UForm
-        :schema="passwordSchema"
-        :state="password"
-        :validate="validate"
-        class="flex flex-col gap-4 max-w-md"
-        @submit="onSubmit"
-      >
-        <UFormField name="current" label="Password Saat Ini">
-          <UInput
-            v-model="password.current"
-            type="password"
-            placeholder="Password saat ini"
-            autocomplete="current-password"
-            class="w-full"
-          />
-        </UFormField>
+      <UFormField name="current" class="mb-6">
+        <UInput
+          v-model="password.current"
+          type="password"
+          placeholder="Password saat ini"
+          autocomplete="current-password"
+          class="w-full"
+        />
+      </UFormField>
 
-        <USeparator />
+      <UFormField name="new">
+        <UInput
+          v-model="password.new"
+          type="password"
+          placeholder="Password baru"
+          autocomplete="new-password"
+          class="w-full"
+        />
+      </UFormField>
 
-        <UFormField name="new" label="Password Baru" description="Minimal 8 karakter.">
-          <UInput
-            v-model="password.new"
-            type="password"
-            placeholder="Password baru"
-            autocomplete="new-password"
-            class="w-full"
-          />
-        </UFormField>
+      <UFormField name="confirm">
+        <UInput
+          v-model="password.confirm"
+          type="password"
+          placeholder="Ulangi password baru"
+          autocomplete="new-password"
+          class="w-full"
+        />
+      </UFormField>
 
-        <UFormField name="confirm" label="Konfirmasi Password Baru">
-          <UInput
-            v-model="password.confirm"
-            type="password"
-            placeholder="Ulangi password baru"
-            autocomplete="new-password"
-            class="w-full"
-          />
-        </UFormField>
-
-        <div>
-          <UButton
-            label="Update Password"
-            type="submit"
-            color="neutral"
-          />
-        </div>
-      </UForm>
-    </UPageCard>
-  </SettingsLayout>
+      <div>
+        <UButton
+          label="Update"
+          type="submit"
+        />
+      </div>
+    </UForm>
+  </UPageCard>
 </template>

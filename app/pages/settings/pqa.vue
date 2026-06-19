@@ -11,10 +11,7 @@
 </script>
 
 <template>
-  <SettingsLayout
-    title="PQA Settings"
-    description="Konfigurasi default dan aturan untuk modul PQA Summary."
-  >
+  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
     <SettingsUnderConstruction feature="Pengaturan PQA" />
-  </SettingsLayout>
+  </div>
 </template>

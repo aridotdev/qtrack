@@ -18,11 +18,26 @@ const links = [[{
   label: 'Security',
   icon: 'i-lucide-shield',
   to: '/settings/security'
-}], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-  target: '_blank'
+}, {
+  label: 'Claims Settings',
+  icon: 'i-lucide-file-warning',
+  to: '/settings/claims'
+}, {
+  label: 'Samples Settings',
+  icon: 'i-lucide-package',
+  to: '/settings/samples'
+}, {
+  label: 'PQA Settings',
+  icon: 'i-lucide-clipboard-check',
+  to: '/settings/pqa'
+}, {
+  label: 'Reports Settings',
+  icon: 'i-lucide-file-text',
+  to: '/settings/reports'
+}, {
+  label: 'Master Data Settings',
+  icon: 'i-lucide-database',
+  to: '/settings/master'
 }]] satisfies NavigationMenuItem[][]
 </script>
 

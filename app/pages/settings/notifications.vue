@@ -44,40 +44,35 @@ async function onChange() {
 </script>
 
 <template>
-  <SettingsLayout
-    title="Notifications"
-    description="Atur bagaimana sistem memberi notifikasi kepada Anda."
+  <div
+    v-for="(section, index) in sections"
+    :key="index"
+    class="mb-6"
   >
-    <div
-      v-for="(section, index) in sections"
-      :key="index"
-      class="mb-6"
-    >
-      <UPageCard
-        :title="section.title"
-        :description="section.description"
-        variant="naked"
-        class="mb-4"
-      />
+    <UPageCard
+      :title="section.title"
+      :description="section.description"
+      variant="naked"
+      class="mb-4"
+    />
 
-      <UPageCard
-        variant="subtle"
-        :ui="{ container: 'divide-y divide-default' }"
+    <UPageCard
+      variant="subtle"
+      :ui="{ container: 'divide-y divide-default' }"
+    >
+      <UFormField
+        v-for="field in section.fields"
+        :key="field.name"
+        :name="field.name"
+        :label="field.label"
+        :description="field.description"
+        class="flex items-center justify-between not-last:pb-4 gap-2"
       >
-        <UFormField
-          v-for="field in section.fields"
-          :key="field.name"
-          :name="field.name"
-          :label="field.label"
-          :description="field.description"
-          class="flex items-center justify-between not-last:pb-4 gap-2"
-        >
-          <USwitch
-            v-model="state[field.name]"
-            @update:model-value="onChange"
-          />
-        </UFormField>
-      </UPageCard>
-    </div>
-  </SettingsLayout>
+        <USwitch
+          v-model="state[field.name]"
+          @update:model-value="onChange"
+        />
+      </UFormField>
+    </UPageCard>
+  </div>
 </template>

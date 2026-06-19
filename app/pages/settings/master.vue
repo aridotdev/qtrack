@@ -11,10 +11,7 @@
 </script>
 
 <template>
-  <SettingsLayout
-    title="Master Data Settings"
-    description="Konfigurasi default untuk data master (Products, Models, Defect Types, Users)."
-  >
+  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
     <SettingsUnderConstruction feature="Pengaturan Master Data" />
-  </SettingsLayout>
+  </div>
 </template>

@@ -13,10 +13,7 @@ const filteredMembers = computed(() => {
 </script>
 
 <template>
-  <SettingsLayout
-    title="Members"
-    description="Kelola anggota tim yang memiliki akses ke sistem."
-  >
+  <div>
     <UPageCard
       title="Daftar Members"
       description="Undang anggota baru melalui email."
@@ -47,5 +44,5 @@ const filteredMembers = computed(() => {
 
       <SettingsMembersList :members="filteredMembers" />
     </UPageCard>
-  </SettingsLayout>
+  </div>
 </template>

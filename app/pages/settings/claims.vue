@@ -11,10 +11,7 @@
 </script>
 
 <template>
-  <SettingsLayout
-    title="Claims Settings"
-    description="Konfigurasi default dan aturan untuk modul Claims."
-  >
+  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
     <SettingsUnderConstruction feature="Pengaturan Claims" />
-  </SettingsLayout>
+  </div>
 </template>

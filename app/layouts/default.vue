@@ -55,9 +55,10 @@ const links = [[{
   defaultOpen: true,
   type: 'trigger',
   children: [{
-    label: 'Profile',
+    label: 'General',
     icon: 'i-lucide-user',
-    to: '/settings/profile',
+    exact: true,
+    to: '/settings',
     onSelect: () => {
       open.value = false
     }

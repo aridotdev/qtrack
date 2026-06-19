@@ -11,10 +11,7 @@
 </script>
 
 <template>
-  <SettingsLayout
-    title="Reports Settings"
-    description="Konfigurasi template dan format laporan."
-  >
+  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
     <SettingsUnderConstruction feature="Pengaturan Reports" />
-  </SettingsLayout>
+  </div>
 </template>
