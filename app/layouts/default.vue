@@ -9,7 +9,7 @@ const open = ref(false)
 const links = [[{
   label: 'Dashboard',
   icon: 'i-lucide-layout-dashboard',
-  to: '/dashboard',
+  to: '/',
   onSelect: () => {
     open.value = false
   }
