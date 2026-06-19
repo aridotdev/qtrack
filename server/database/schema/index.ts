@@ -1,3 +1,4 @@
 export * from './product'
 export * from './model'
-export * from './defect-type'
+export * from './defect-category'
+export * from './defects'

@@ -239,7 +239,7 @@ qc-tracker/
 │   │   ├── pqa-summary/
 │   │   ├── reports/
 │   │   ├── attachments/     # Upload & serve file attachment
-│   │   ├── master/          # products, models, defect-types, users
+│   │   ├── master/          # products, models, defect, users
 │   │   └── auth/            # Better-auth handler
 │   ├── db/
 │   │   ├── schema.ts        # Drizzle schema definitions
@@ -303,7 +303,7 @@ qc-tracker/
 | GET | `/api/dashboard/kpi` | Data KPI dashboard |
 | GET | `/api/dashboard/trend` | Data tren bulanan |
 | GET | `/api/master/products` | List produk |
-| GET | `/api/master/defect-types` | List jenis defect |
+| GET | `/api/master/defect` | List jenis defect |
 | POST | `/api/attachments/upload` | Upload file attachment |
 | GET | `/api/attachments/:id` | Serve/download file attachment |
 | DELETE | `/api/attachments/:id` | Hapus attachment |

@@ -22,7 +22,7 @@ const links = [[{
 }, {
   label: 'Defect Types',
   icon: 'i-lucide-bell',
-  to: '/masters/defect-types'
+  to: '/masters/defect'
 }]] satisfies NavigationMenuItem[][]
 </script>
 
