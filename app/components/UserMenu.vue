@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { createAuthClient } from 'better-auth/vue'
 
 defineProps<{
   collapsed?: boolean
@@ -7,15 +8,24 @@ defineProps<{
 
 const colorMode = useColorMode()
 const appConfig = useAppConfig()
+const toast = useToast()
+const router = useRouter()
+
+const authClient = createAuthClient()
+const session = authClient.useSession()
 
 const colors = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose']
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
 
-const user = ref({
-  name: 'Benjamin Canac',
-  avatar: {
-    src: 'https://github.com/benjamincanac.png',
-    alt: 'Benjamin Canac'
+const user = computed(() => {
+  const u = session.value?.data?.user
+  return {
+    name: u?.name ?? u?.email ?? 'Guest',
+    email: u?.email,
+    avatar: {
+      src: u?.image ?? undefined,
+      alt: u?.name ?? u?.email ?? 'User'
+    }
   }
 })
 
@@ -103,7 +113,16 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
   }]
 }], [{
   label: 'Log out',
-  icon: 'i-lucide-log-out'
+  icon: 'i-lucide-log-out',
+  onSelect: async () => {
+    await authClient.signOut()
+    toast.add({
+      title: 'Logout berhasil',
+      description: 'Sampai jumpa kembali!',
+      color: 'success'
+    })
+    await router.push('/auth/login')
+  }
 }]]))
 </script>
 
