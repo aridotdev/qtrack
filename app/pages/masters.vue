@@ -20,9 +20,13 @@ const links = [[{
   icon: 'i-lucide-users',
   to: '/masters/models'
 }, {
-  label: 'Defect Types',
+  label: 'Defect',
   icon: 'i-lucide-bell',
   to: '/masters/defect'
+}, {
+  label: 'Defect Categories',
+  icon: 'i-lucide-bell',
+  to: '/masters/defect-categories'
 }]] satisfies NavigationMenuItem[][]
 </script>
 

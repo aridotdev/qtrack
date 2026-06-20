@@ -16,20 +16,6 @@ interface DefectCategory {
   updatedAt: string
 }
 
-interface Defect {
-  id: number
-  code: string
-  name: string
-  description: string | null
-  categoryId: number
-  categoryName: string | null
-  isActive: boolean
-  createdBy: string
-  updatedBy: string
-  createdAt: string
-  updatedAt: string
-}
-
 interface ApiResponse<T> {
   success: boolean
   data: T
@@ -45,66 +31,47 @@ const table = useTemplateRef('table')
 
 const search = ref('')
 const statusFilter = ref<'all' | 'active' | 'inactive'>('all')
-const categoryFilter = ref<number | null>(null)
-
 const isFormOpen = ref(false)
 const isDeleteOpen = ref(false)
-const selectedDefect = ref<Defect>()
+const selectedCategory = ref<DefectCategory>()
 const isSaving = ref(false)
 const isDeleting = ref(false)
 const isRefreshingStatus = ref(false)
 
 const schema = z.object({
-  code: z.string().trim().min(1, 'Kode defect wajib diisi').max(32, 'Kode defect maksimal 32 karakter').transform(value => value.toUpperCase()),
-  name: z.string().trim().min(1, 'Nama defect wajib diisi').max(120, 'Nama defect maksimal 120 karakter'),
+  code: z.string().trim().min(1, 'Kode kategori wajib diisi').max(32, 'Kode kategori maksimal 32 karakter').transform(value => value.toUpperCase()),
+  name: z.string().trim().min(1, 'Nama kategori wajib diisi').max(120, 'Nama kategori maksimal 120 karakter'),
   description: z.string().trim().max(500, 'Deskripsi maksimal 500 karakter').optional(),
-  categoryId: z.number({ message: 'Kategori defect wajib dipilih' }).int().positive('Kategori defect wajib dipilih'),
   isActive: z.boolean()
 })
 
-type DefectForm = z.output<typeof schema>
+type CategoryForm = z.output<typeof schema>
 
-const formState = reactive<DefectForm>({
+const formState = reactive<CategoryForm>({
   code: '',
   name: '',
   description: '',
-  categoryId: 0,
   isActive: true
 })
 
-const { data: categoryResponse, status: categoryStatus } = await useFetch<ApiResponse<DefectCategory[]>>('/api/defect-categories', {
+const { data: response, status, refresh } = await useFetch<ApiResponse<DefectCategory[]>>('/api/defect-categories', {
   lazy: true
 })
 
-const { data: defectResponse, status, refresh } = await useFetch<ApiResponse<Defect[]>>('/api/defects', {
-  lazy: true
-})
+const categories = computed(() => response.value?.data ?? [])
 
-const categories = computed(() => categoryResponse.value?.data ?? [])
-const defects = computed(() => defectResponse.value?.data ?? [])
-
-const activeCategories = computed(() => categories.value.filter(category => category.isActive))
-
-const categorySelectItems = computed(() => activeCategories.value.map(category => ({
-  label: `${category.code} - ${category.name}`,
-  value: category.id
-})))
-
-const filteredDefects = computed(() => {
+const filteredCategories = computed(() => {
   const keyword = search.value.trim().toLowerCase()
 
-  return defects.value.filter((defect) => {
+  return categories.value.filter((category) => {
     const matchesSearch = !keyword
-      || defect.code.toLowerCase().includes(keyword)
-      || defect.name.toLowerCase().includes(keyword)
-      || (defect.categoryName?.toLowerCase().includes(keyword) ?? false)
+      || category.code.toLowerCase().includes(keyword)
+      || category.name.toLowerCase().includes(keyword)
     const matchesStatus = statusFilter.value === 'all'
-      || (statusFilter.value === 'active' && defect.isActive)
-      || (statusFilter.value === 'inactive' && !defect.isActive)
-    const matchesCategory = categoryFilter.value === null
-      || defect.categoryId === categoryFilter.value
+      || (statusFilter.value === 'active' && category.isActive)
+      || (statusFilter.value === 'inactive' && !category.isActive)
 
-    return matchesSearch && matchesStatus && matchesCategory
+    return matchesSearch && matchesStatus
   })
 })
 
@@ -121,7 +88,7 @@ watch(() => formState.code, (value) => {
   }
 })
 
-watch([search, statusFilter, categoryFilter], () => {
+watch([search, statusFilter], () => {
   table.value?.tableApi?.setPageIndex(0)
 })
 
@@ -129,9 +96,8 @@ function resetForm() {
   formState.code = ''
   formState.name = ''
   formState.description = ''
-  formState.categoryId = activeCategories.value[0]?.id ?? 0
   formState.isActive = true
-  selectedDefect.value = undefined
+  selectedCategory.value = undefined
 }
 
 function openCreateForm() {
@@ -139,18 +105,17 @@ function openCreateForm() {
   isFormOpen.value = true
 }
 
-function openEditForm(defect: Defect) {
-  selectedDefect.value = defect
-  formState.code = defect.code
-  formState.name = defect.name
-  formState.description = defect.description ?? ''
-  formState.categoryId = defect.categoryId
-  formState.isActive = defect.isActive
+function openEditForm(category: DefectCategory) {
+  selectedCategory.value = category
+  formState.code = category.code
+  formState.name = category.name
+  formState.description = category.description ?? ''
+  formState.isActive = category.isActive
   isFormOpen.value = true
 }
 
-function openDeleteDialog(defect: Defect) {
-  selectedDefect.value = defect
+function openDeleteDialog(category: DefectCategory) {
+  selectedCategory.value = category
   isDeleteOpen.value = true
 }
 
@@ -166,23 +131,23 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
-async function saveDefect(event: FormSubmitEvent<DefectForm>) {
+async function saveCategory(event: FormSubmitEvent<CategoryForm>) {
   isSaving.value = true
 
   try {
-    const defect = selectedDefect.value
+    const category = selectedCategory.value
     const payload = {
       ...event.data,
       description: event.data.description?.trim() ? event.data.description : null
     }
 
-    if (defect) {
-      await $fetch(`/api/defects/${defect.id}`, {
+    if (category) {
+      await $fetch(`/api/defect-categories/${category.id}`, {
         method: 'PUT',
         body: payload
       })
     } else {
-      await $fetch('/api/defects', {
+      await $fetch('/api/defect-categories', {
         method: 'POST',
         body: payload
       })
@@ -193,14 +158,14 @@ async function saveDefect(event: FormSubmitEvent<DefectForm>) {
     resetForm()
 
     toast.add({
-      title: defect ? 'Defect diperbarui' : 'Defect ditambahkan',
+      title: category ? 'Kategori diperbarui' : 'Kategori ditambahkan',
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
   } catch (error) {
     toast.add({
-      title: 'Gagal menyimpan defect',
-      description: getErrorMessage(error, 'Periksa data defect lalu coba lagi.'),
+      title: 'Gagal menyimpan kategori',
+      description: getErrorMessage(error, 'Periksa data kategori lalu coba lagi.'),
       color: 'error',
       icon: 'i-lucide-circle-alert'
     })
@@ -209,17 +174,16 @@ async function saveDefect(event: FormSubmitEvent<DefectForm>) {
   }
 }
 
-async function toggleDefectStatus(defect: Defect, isActive: boolean) {
+async function toggleCategoryStatus(category: DefectCategory, isActive: boolean) {
   isRefreshingStatus.value = true
 
   try {
-    await $fetch(`/api/defects/${defect.id}`, {
+    await $fetch(`/api/defect-categories/${category.id}`, {
       method: 'PUT',
       body: {
-        code: defect.code,
-        name: defect.name,
-        description: defect.description,
-        categoryId: defect.categoryId,
+        code: category.code,
+        name: category.name,
+        description: category.description,
         isActive
       }
     })
@@ -227,14 +191,14 @@ async function toggleDefectStatus(defect: Defect, isActive: boolean) {
     await refresh()
 
     toast.add({
-      title: isActive ? 'Defect diaktifkan' : 'Defect dinonaktifkan',
+      title: isActive ? 'Kategori diaktifkan' : 'Kategori dinonaktifkan',
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
   } catch (error) {
     toast.add({
-      title: 'Gagal mengubah status defect',
-      description: getErrorMessage(error, 'Status defect belum berubah.'),
+      title: 'Gagal mengubah status kategori',
+      description: getErrorMessage(error, 'Status kategori belum berubah.'),
       color: 'error',
       icon: 'i-lucide-circle-alert'
     })
@@ -243,13 +207,13 @@ async function toggleDefectStatus(defect: Defect, isActive: boolean) {
   }
 }
 
-async function deleteDefect() {
-  if (!selectedDefect.value) return
+async function deleteCategory() {
+  if (!selectedCategory.value) return
 
   isDeleting.value = true
 
   try {
-    await $fetch(`/api/defects/${selectedDefect.value.id}`, {
+    await $fetch(`/api/defect-categories/${selectedCategory.value.id}`, {
       method: 'DELETE'
     })
 
@@ -257,15 +221,15 @@ async function deleteDefect() {
     isDeleteOpen.value = false
 
     toast.add({
-      title: 'Defect dinonaktifkan',
-      description: 'Defect tetap tersimpan untuk riwayat data.',
+      title: 'Kategori dinonaktifkan',
+      description: 'Kategori tetap tersimpan untuk riwayat data.',
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
   } catch (error) {
     toast.add({
-      title: 'Gagal menonaktifkan defect',
-      description: getErrorMessage(error, 'Defect belum berubah.'),
+      title: 'Gagal menonaktifkan kategori',
+      description: getErrorMessage(error, 'Kategori belum berubah.'),
       color: 'error',
       icon: 'i-lucide-circle-alert'
     })
@@ -281,39 +245,31 @@ function formatDate(value: string) {
   }).format(new Date(value))
 }
 
-function getRowItems(row: Row<Defect>) {
-  const defect = row.original
+function getRowItems(row: Row<DefectCategory>) {
+  const category = row.original
 
   return [
     [{
       label: 'Edit',
       icon: 'i-lucide-pencil',
-      onSelect: () => openEditForm(defect)
+      onSelect: () => openEditForm(category)
     }],
     [{
-      label: defect.isActive ? 'Nonaktifkan' : 'Aktifkan',
-      icon: defect.isActive ? 'i-lucide-circle-minus' : 'i-lucide-circle-check',
-      color: defect.isActive ? 'warning' as const : 'success' as const,
-      onSelect: () => defect.isActive ? openDeleteDialog(defect) : toggleDefectStatus(defect, true)
+      label: category.isActive ? 'Nonaktifkan' : 'Aktifkan',
+      icon: category.isActive ? 'i-lucide-circle-minus' : 'i-lucide-circle-check',
+      color: category.isActive ? 'warning' as const : 'success' as const,
+      onSelect: () => category.isActive ? openDeleteDialog(category) : toggleCategoryStatus(category, true)
     }]
   ]
 }
 
-const columns: TableColumn<Defect>[] = [{
+const columns: TableColumn<DefectCategory>[] = [{
   accessorKey: 'code',
   header: 'Kode',
   cell: ({ row }) => h('span', { class: 'font-medium text-highlighted' }, row.original.code)
 }, {
   accessorKey: 'name',
-  header: 'Nama Defect'
-}, {
-  accessorKey: 'categoryName',
-  header: 'Kategori',
-  cell: ({ row }) => h(UBadge, {
-    color: 'primary',
-    variant: 'subtle',
-    label: row.original.categoryName ?? '-'
-  })
+  header: 'Nama Kategori'
 }, {
   accessorKey: 'isActive',
   header: 'Status',
@@ -337,7 +293,7 @@ const columns: TableColumn<Defect>[] = [{
     variant: 'ghost',
     loading: isRefreshingStatus.value,
     class: 'ml-auto',
-    ariaLabel: 'Aksi defect'
+    ariaLabel: 'Aksi kategori'
   })))
 }]
 </script>
@@ -347,17 +303,16 @@ const columns: TableColumn<Defect>[] = [{
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-lg font-semibold text-highlighted">
-          Master Defect
+          Defect Categories
         </h2>
         <p class="text-sm text-muted">
-          Kelola jenis defect spesifik yang terikat pada satu kategori.
+          Kelola pengelompokan defect yang digunakan pada master defect.
         </p>
       </div>
 
       <UButton
-        label="Tambah Defect"
+        label="Tambah Kategori"
         icon="i-lucide-plus"
-        :disabled="activeCategories.length === 0"
         @click="openCreateForm"
       />
     </div>
@@ -367,31 +322,18 @@ const columns: TableColumn<Defect>[] = [{
         v-model="search"
         class="w-full sm:max-w-xs"
         icon="i-lucide-search"
-        placeholder="Cari kode, nama, atau kategori..."
+        placeholder="Cari kode atau nama..."
       />
 
-      <div class="flex flex-wrap items-center gap-2">
-        <USelect
-          v-model="categoryFilter"
-          :items="[
-            { label: 'Semua kategori', value: null },
-            ...categorySelectItems
-          ]"
-          value-key="value"
-          class="min-w-48"
-          placeholder="Filter kategori"
-        />
-
-        <USelect
-          v-model="statusFilter"
-          :items="[
-            { label: 'Semua status', value: 'all' },
-            { label: 'Aktif', value: 'active' },
-            { label: 'Nonaktif', value: 'inactive' }
-          ]"
-          class="min-w-36"
-        />
-      </div>
+      <USelect
+        v-model="statusFilter"
+        :items="[
+          { label: 'Semua status', value: 'all' },
+          { label: 'Aktif', value: 'active' },
+          { label: 'Nonaktif', value: 'inactive' }
+        ]"
+        class="min-w-36"
+      />
     </div>
 
     <UTable
@@ -400,9 +342,9 @@ const columns: TableColumn<Defect>[] = [{
       :pagination-options="{
         getPaginationRowModel: getPaginationRowModel()
       }"
-      :data="filteredDefects"
+      :data="filteredCategories"
       :columns="columns"
-      :loading="status === 'pending' || status === 'idle' || categoryStatus === 'pending' || categoryStatus === 'idle'"
+      :loading="status === 'pending' || status === 'idle'"
       class="shrink-0"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
@@ -415,19 +357,14 @@ const columns: TableColumn<Defect>[] = [{
     >
       <template #empty>
         <div class="py-8 text-center text-sm text-muted">
-          <template v-if="activeCategories.length === 0">
-            Tambahkan kategori defect terlebih dahulu untuk mulai mengelola jenis defect.
-          </template>
-          <template v-else>
-            Belum ada defect yang cocok.
-          </template>
+          Belum ada kategori defect yang cocok.
         </div>
       </template>
     </UTable>
 
     <div class="flex items-center justify-between gap-3 border-t border-default pt-4">
       <div class="text-sm text-muted">
-        {{ filteredDefects.length }} defect
+        {{ filteredCategories.length }} kategori
       </div>
 
       <UPagination
@@ -440,39 +377,30 @@ const columns: TableColumn<Defect>[] = [{
 
     <UModal
       v-model:open="isFormOpen"
-      :title="selectedDefect ? 'Edit Defect' : 'Tambah Defect'"
-      :description="selectedDefect ? 'Perbarui detail master defect.' : 'Tambahkan jenis defect baru ke master data.'"
+      :title="selectedCategory ? 'Edit Kategori Defect' : 'Tambah Kategori Defect'"
+      :description="selectedCategory ? 'Perbarui detail master kategori defect.' : 'Tambahkan kategori baru untuk mengelompokkan defect.'"
       :ui="{ footer: 'justify-end' }"
     >
       <template #body>
         <UForm
-          id="defect-form"
+          id="category-form"
           :schema="schema"
           :state="formState"
           class="space-y-4"
-          @submit="saveDefect"
+          @submit="saveCategory"
         >
-          <UFormField name="categoryId" label="Kategori" required>
-            <USelect
-              v-model="formState.categoryId"
-              :items="categorySelectItems"
-              value-key="value"
-              placeholder="Pilih kategori"
-            />
-          </UFormField>
-
           <UFormField name="code" label="Kode" required>
             <UInput
               v-model="formState.code"
-              placeholder="BAT-LEAK"
+              placeholder="ELEC"
               autocomplete="off"
             />
           </UFormField>
 
-          <UFormField name="name" label="Nama Defect" required>
+          <UFormField name="name" label="Nama Kategori" required>
             <UInput
               v-model="formState.name"
-              placeholder="Battery Leak"
+              placeholder="Electrical"
               autocomplete="off"
             />
           </UFormField>
@@ -480,7 +408,7 @@ const columns: TableColumn<Defect>[] = [{
           <UFormField name="description" label="Deskripsi">
             <UTextarea
               v-model="formState.description"
-              placeholder="Penjelasan singkat tentang defect (opsional)"
+              placeholder="Penjelasan singkat tentang kategori ini (opsional)"
               :rows="3"
             />
           </UFormField>
@@ -504,7 +432,7 @@ const columns: TableColumn<Defect>[] = [{
         />
         <UButton
           type="submit"
-          form="defect-form"
+          form="category-form"
           label="Simpan"
           icon="i-lucide-save"
           :loading="isSaving"
@@ -514,8 +442,8 @@ const columns: TableColumn<Defect>[] = [{
 
     <UModal
       v-model:open="isDeleteOpen"
-      title="Nonaktifkan Defect"
-      :description="`Defect ${selectedDefect?.name || ''} akan disembunyikan dari pilihan aktif.`"
+      title="Nonaktifkan Kategori Defect"
+      :description="`Kategori ${selectedCategory?.name || ''} akan disembunyikan dari pilihan aktif.`"
       :ui="{ footer: 'justify-end' }"
     >
       <template #footer="{ close }">
@@ -531,7 +459,7 @@ const columns: TableColumn<Defect>[] = [{
           color="error"
           icon="i-lucide-trash"
           :loading="isDeleting"
-          @click="deleteDefect"
+          @click="deleteCategory"
         />
       </template>
     </UModal>
