@@ -1,3 +1,4 @@
+export * from './auth'
 export * from './product'
 export * from './model'
 export * from './defect-category'
