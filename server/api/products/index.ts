@@ -3,8 +3,7 @@ import { createError, defineEventHandler, getQuery, readBody, setResponseStatus 
 import { z } from 'zod'
 import { db } from '../../database'
 import { products } from '../../database/schema'
-
-const SYSTEM_USER_ID = 'system'
+import { requireAccess } from '../../utils/rbac'
 
 const productSchema = z.object({
   code: z.string().trim().min(1, 'Kode produk wajib diisi').max(32, 'Kode produk maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -35,6 +34,8 @@ function getDatabaseErrorMessage(error: unknown) {
 
 export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
+    const user = await requireAccess(event, 'master', 'view')
+
     const query = getQuery(event)
     const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : ''
     const status = typeof query.status === 'string' ? query.status : 'all'
@@ -54,11 +55,15 @@ export default defineEventHandler(async (event) => {
 
           return matchesSearch && matchesStatus
         })
-        .map(serializeProduct)
+        .map(serializeProduct),
+      // Echo acting user untuk audit/logging di klien bila dibutuhkan.
+      actingUser: { id: user.id, name: user.name, role: user.role }
     }
   }
 
   if (event.method === 'POST') {
+    const user = await requireAccess(event, 'master', 'manage')
+
     const body = await readBody(event)
     const parsed = productSchema.safeParse(body)
 
@@ -74,8 +79,8 @@ export default defineEventHandler(async (event) => {
     try {
       const [createdProduct] = await db.insert(products).values({
         ...parsed.data,
-        createdBy: SYSTEM_USER_ID,
-        updatedBy: SYSTEM_USER_ID
+        createdBy: user.id,
+        updatedBy: user.id
       }).returning()
 
       if (!createdProduct) {

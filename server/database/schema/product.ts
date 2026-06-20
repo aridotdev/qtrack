@@ -1,26 +1,34 @@
 import { sql } from 'drizzle-orm'
 import { integer, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
+import { user } from './auth'
 
 /**
  * Tabel: products
  *
- * Master data produk. Menggunakan soft delete via `is_active`.
+ * Master data produk. Menggunakan soft delete via `isActive`.
  * Tidak bisa dihapus permanen jika sudah dipakai di claim
  * (referential integrity dijaga via FK dengan ON DELETE RESTRICT
  * di tabel `claims`).
+ *
+ * Audit trail (`createdBy`, `updatedBy`) terhubung ke `user.id`
+ * dari Better Auth dengan ON DELETE RESTRICT — kita tidak boleh
+ * kehilangan jejak "siapa yang buat/ubah record ini" walau user
+ * dihapus/di-ban (lihat PRD §4 Keamanan & §3.8 Manajemen Pengguna).
  */
 export const products = sqliteTable('products', {
   id: integer().primaryKey({ autoIncrement: true }),
   code: text().notNull(),
   name: text().notNull(),
-  // Boolean (1 = aktif, 0 = non-aktif). Disimpan sebagai integer
-  // karena SQLite tidak punya tipe boolean native.
   isActive: integer({ mode: 'boolean' }).notNull().default(true),
 
-  // Sementara belum memakai FK ke users karena Better Auth schema
-  // akan diintegrasikan pada fase berikutnya.
-  createdBy: text().notNull(),
-  updatedBy: text().notNull(),
+  // Audit: FK ke Better Auth `user`. RESTRICT agar history tetap utuh
+  // walau user di-ban/dihapus (FK error lebih baik daripada audit hilang).
+  createdBy: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'restrict' }),
+  updatedBy: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'restrict' }),
 
   // Unix timestamp (ms) — konsisten dengan seluruh tabel di project ini.
   createdAt: integer({ mode: 'timestamp_ms' })
@@ -34,7 +42,9 @@ export const products = sqliteTable('products', {
 table => [
   uniqueIndex('products_code_unique').on(table.code),
   index('products_is_active_idx').on(table.isActive),
-  index('products_created_at_idx').on(table.createdAt)
+  index('products_created_at_idx').on(table.createdAt),
+  index('products_created_by_idx').on(table.createdBy),
+  index('products_updated_by_idx').on(table.updatedBy)
 ]
 )
 

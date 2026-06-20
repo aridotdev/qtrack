@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { integer, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
 import { defectCategories } from './defect-category'
+import { user } from './auth'
 
 /**
  * Tabel: defects
@@ -12,6 +13,9 @@ import { defectCategories } from './defect-category'
  * - Tidak bisa dihapus permanen jika sudah dipakai di claim
  *   (FK di tabel `claims` menggunakan ON DELETE RESTRICT).
  * - Tidak bisa menghapus kategori jika masih ada defect aktif (RESTRICT).
+ *
+ * Audit trail (`createdBy`, `updatedBy`) → FK ke Better Auth `user.id`
+ * dengan ON DELETE RESTRICT (lihat product.ts untuk rationale).
  */
 export const defects = sqliteTable('defects', {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -22,10 +26,13 @@ export const defects = sqliteTable('defects', {
     .notNull()
     .references(() => defectCategories.id, { onDelete: 'restrict' }),
   isActive: integer({ mode: 'boolean' }).notNull().default(true),
-  // Sementara belum memakai FK ke users karena Better Auth schema
-  // akan diintegrasikan pada fase berikutnya.
-  createdBy: text().notNull(),
-  updatedBy: text().notNull(),
+
+  createdBy: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'restrict' }),
+  updatedBy: text()
+    .notNull()
+    .references(() => user.id, { onDelete: 'restrict' }),
 
   // Unix timestamp (ms).
   createdAt: integer({ mode: 'timestamp_ms' })
@@ -38,12 +45,13 @@ export const defects = sqliteTable('defects', {
 },
 table => [
   uniqueIndex('defects_code_unique').on(table.code),
-  // Nama defect harus unik dalam scope kategori yang sama.
   uniqueIndex('defects_name_category_unique').on(table.name, table.categoryId),
   index('defects_category_id_idx').on(table.categoryId),
   index('defects_is_active_idx').on(table.isActive),
   index('defects_created_at_idx').on(table.createdAt),
-  index('defects_category_id_is_active_idx').on(table.categoryId, table.isActive)
+  index('defects_category_id_is_active_idx').on(table.categoryId, table.isActive),
+  index('defects_created_by_idx').on(table.createdBy),
+  index('defects_updated_by_idx').on(table.updatedBy)
 ]
 )
 

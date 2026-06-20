@@ -4,8 +4,7 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 import { db } from '../../database'
 import { defects, defectCategories } from '../../database/schema'
-
-const SYSTEM_USER_ID = 'system'
+import { requireAccess } from '../../utils/rbac'
 
 const defectSchema = z.object({
   code: z.string().trim().min(1, 'Kode defect wajib diisi').max(32, 'Kode defect maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -92,6 +91,8 @@ export default defineEventHandler(async (event) => {
   const id = getDefectId(event)
 
   if (event.method === 'GET') {
+    await requireAccess(event, 'master', 'view')
+
     const defect = await findDefect(id)
 
     return {
@@ -101,6 +102,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'PUT') {
+    const user = await requireAccess(event, 'master', 'manage')
     await findDefect(id)
 
     const body = await readBody(event)
@@ -120,7 +122,7 @@ export default defineEventHandler(async (event) => {
         .set({
           ...parsed.data,
           description: parsed.data.description ?? null,
-          updatedBy: SYSTEM_USER_ID,
+          updatedBy: user.id,
           updatedAt: new Date()
         })
         .where(eq(defects.id, id))
@@ -157,12 +159,13 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'DELETE') {
+    const user = await requireAccess(event, 'master', 'manage')
     await findDefect(id)
 
     const [deletedDefect] = await db.update(defects)
       .set({
         isActive: false,
-        updatedBy: SYSTEM_USER_ID,
+        updatedBy: user.id,
         updatedAt: new Date()
       })
       .where(eq(defects.id, id))

@@ -3,8 +3,7 @@ import { createError, defineEventHandler, getQuery, readBody, setResponseStatus 
 import { z } from 'zod'
 import { db } from '../../database'
 import { defectCategories } from '../../database/schema'
-
-const SYSTEM_USER_ID = 'system'
+import { requireAccess } from '../../utils/rbac'
 
 const categorySchema = z.object({
   code: z.string().trim().min(1, 'Kode kategori wajib diisi').max(32, 'Kode kategori maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -37,6 +36,8 @@ function getDatabaseErrorMessage(error: unknown) {
 
 export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
+    await requireAccess(event, 'master', 'view')
+
     const query = getQuery(event)
     const search = typeof query.search === 'string' ? query.search.trim().toLowerCase() : ''
     const status = typeof query.status === 'string' ? query.status : 'all'
@@ -61,6 +62,8 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'POST') {
+    const user = await requireAccess(event, 'master', 'manage')
+
     const body = await readBody(event)
     const parsed = categorySchema.safeParse(body)
 
@@ -77,8 +80,8 @@ export default defineEventHandler(async (event) => {
       const [createdCategory] = await db.insert(defectCategories).values({
         ...parsed.data,
         description: parsed.data.description ?? null,
-        createdBy: SYSTEM_USER_ID,
-        updatedBy: SYSTEM_USER_ID
+        createdBy: user.id,
+        updatedBy: user.id
       }).returning()
 
       if (!createdCategory) {

@@ -4,8 +4,7 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 import { db } from '../../database'
 import { products } from '../../database/schema'
-
-const SYSTEM_USER_ID = 'system'
+import { requireAccess } from '../../utils/rbac'
 
 const productSchema = z.object({
   code: z.string().trim().min(1, 'Kode produk wajib diisi').max(32, 'Kode produk maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -66,6 +65,8 @@ export default defineEventHandler(async (event) => {
   const id = getProductId(event)
 
   if (event.method === 'GET') {
+    await requireAccess(event, 'master', 'view')
+
     const product = await findProduct(id)
 
     return {
@@ -75,6 +76,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'PUT') {
+    const user = await requireAccess(event, 'master', 'manage')
     await findProduct(id)
 
     const body = await readBody(event)
@@ -93,7 +95,7 @@ export default defineEventHandler(async (event) => {
       const [updatedProduct] = await db.update(products)
         .set({
           ...parsed.data,
-          updatedBy: SYSTEM_USER_ID,
+          updatedBy: user.id,
           updatedAt: new Date()
         })
         .where(eq(products.id, id))
@@ -121,12 +123,13 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'DELETE') {
+    const user = await requireAccess(event, 'master', 'manage')
     await findProduct(id)
 
     const [deletedProduct] = await db.update(products)
       .set({
         isActive: false,
-        updatedBy: SYSTEM_USER_ID,
+        updatedBy: user.id,
         updatedAt: new Date()
       })
       .where(eq(products.id, id))
