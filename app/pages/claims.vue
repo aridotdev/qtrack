@@ -11,9 +11,9 @@
 </script>
 
 <template>
-  <UDashboardPanel id="customers">
+  <UDashboardPanel id="claims">
     <template #header>
-      <UDashboardNavbar title="Customers">
+      <UDashboardNavbar title="Claims">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
