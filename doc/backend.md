@@ -49,7 +49,7 @@ INDEX:
 - Menggunakan soft delete via `is_active` flag
 - Tidak bisa dihapus permanen jika sudah dipakai di claim
 
-**Digunakan di halaman:** Master Data (tab Products) · Claims (form & filter) · Dashboard (filter)
+**Digunakan di halaman:** Master Data `/masters` (Products) · Claims (form & filter) · Dashboard (filter)
 
 ---
 
@@ -78,18 +78,18 @@ INDEX:
 - Tidak bisa hapus produk induk jika masih ada model aktif (RESTRICT)
 - Dropdown model di form claim difilter berdasarkan produk yang dipilih
 
-**Digunakan di halaman:** Master Data (tab Models) · Claims (form & filter) · Dashboard (filter)
+**Digunakan di halaman:** Master Data `/masters/models` (Models) · Claims (form & filter) · Dashboard (filter)
 
 ---
 
-## 4. defect_types
+## 4. defect_categories
 
 | Kolom      | Tipe    | Constraint       | Keterangan                    |
 | ---------- | ------- | ---------------- | ----------------------------- |
-| id         | integer | PK               | ID defect                     |
-| code       | text    | NOT NULL, UNIQUE | Kode defect                   |
-| name       | text    | NOT NULL, UNIQUE | Nama defect (tampil di UI)    |
-| category   | text    | NULL             | Kategori defect (opsional)    |
+| id         | integer | PK               | ID kategori defect            |
+| code       | text    | NOT NULL, UNIQUE | Kode kategori                 |
+| name       | text    | NOT NULL, UNIQUE | Nama kategori                 |
+| description| text    | NULL             | Deskripsi kategori            |
 | is_active  | integer | NOT NULL         | Boolean (1 = aktif)           |
 | created_by | text    | FK → users.id    | ID user yang membuat          |
 | updated_by | text    | FK → users.id    | ID user yang mengupdate       |
@@ -105,11 +105,45 @@ INDEX:
 📌 CATATAN:
 - Menggunakan soft delete via `is_active` flag
 
-**Digunakan di halaman:** Master Data (tab Defect Types) · Claims (form) · Dashboard (chart Top Defect)
+- Kategori tidak bisa dihapus permanen jika masih ada defect aktif di bawahnya
+
+**Digunakan di halaman:** Master Data `/masters/defect-categories` · Master Data `/masters/defect` (dropdown/filter)
 
 ---
 
-## 5. claims
+## 5. defects
+
+| Kolom      | Tipe    | Constraint                                    | Keterangan                    |
+| ---------- | ------- | --------------------------------------------- | ----------------------------- |
+| id         | integer | PK                                            | ID defect                     |
+| code       | text    | NOT NULL, UNIQUE                              | Kode defect                   |
+| name       | text    | NOT NULL                                      | Nama defect                   |
+| description| text    | NULL                                          | Deskripsi defect              |
+| category_id| integer | FK -> defect_categories.id, onDelete: RESTRICT | Kategori defect               |
+| is_active  | integer | NOT NULL                                      | Boolean (1 = aktif)           |
+| created_by | text    | FK -> users.id                                | ID user yang membuat          |
+| updated_by | text    | FK -> users.id                                | ID user yang mengupdate       |
+| created_at | integer | NOT NULL                                      | Waktu dibuat (Unix timestamp) |
+| updated_at | integer | NOT NULL                                      | Waktu diupdate                |
+
+INDEX:
+- UNIQUE (code)
+- UNIQUE (name, category_id)
+- INDEX (category_id)
+- INDEX (is_active)
+- INDEX (created_at)
+- INDEX (category_id, is_active)
+
+CATATAN:
+- Menggunakan soft delete via `is_active` flag
+- Nama defect unik dalam scope kategori yang sama
+- Tidak bisa dihapus permanen jika sudah dipakai di claim
+
+**Digunakan di halaman:** Master Data `/masters/defect` · Claims (form) · Dashboard (chart Top Defect)
+
+---
+
+## 6. claims
 
 | Kolom          | Tipe    | Constraint                              | Keterangan                         |
 | -------------- | ------- | --------------------------------------- | ---------------------------------- |
@@ -117,7 +151,7 @@ INDEX:
 | claim_code     | text    | NOT NULL, UNIQUE                        | Format: `CLM-YYYY-NNN`             |
 | product_id     | integer | FK → products.id, onDelete: RESTRICT    | Produk terkait                     |
 | model_id       | integer | FK → product_models.id, onDelete: RESTRICT | Model terkait                   |
-| defect_id      | integer | FK → defect_types.id, onDelete: RESTRICT| Jenis defect                       |
+| defect_id      | integer | FK → defects.id, onDelete: RESTRICT     | Jenis defect                       |
 | source         | text    | NOT NULL                                | Sumber claim                       |
 | description    | text    | NOT NULL                                | Deskripsi masalah                  |
 | status         | text    | NOT NULL, DEFAULT 'OPEN'                | `OPEN` / `WAITING_PQA` / `ON_PROGRESS` / `CLOSED` |
@@ -144,7 +178,7 @@ INDEX:
 
 ---
 
-## 6. claim_status_logs
+## 7. claim_status_logs
 
 | Kolom      | Tipe    | Constraint                            | Keterangan                         |
 | ---------- | ------- | ------------------------------------- | ---------------------------------- |
@@ -167,7 +201,7 @@ INDEX:
 
 ---
 
-## 7. samples
+## 8. samples
 
 | Kolom         | Tipe    | Constraint                          | Keterangan                           |
 | ------------- | ------- | ----------------------------------- | ------------------------------------ |
@@ -200,7 +234,7 @@ INDEX:
 
 ---
 
-## 8. sample_parts
+## 9. sample_parts
 
 | Kolom      | Tipe    | Constraint                           | Keterangan                    |
 | ---------- | ------- | ------------------------------------ | ----------------------------- |
@@ -222,7 +256,7 @@ INDEX:
 
 ---
 
-## 9. pqa_summaries
+## 10. pqa_summaries
 
 | Kolom                   | Tipe    | Constraint                           | Keterangan                                          |
 | ----------------------- | ------- | ------------------------------------ | --------------------------------------------------- |
@@ -254,7 +288,7 @@ INDEX:
 
 ---
 
-## 10. attachments
+## 11. attachments
 
 | Kolom       | Tipe    | Constraint    | Keterangan                                         |
 | ----------- | ------- | ------------- | -------------------------------------------------- |
@@ -281,7 +315,7 @@ INDEX:
 
 ---
 
-## 11. monthly_reports
+## 12. monthly_reports
 
 | Kolom        | Tipe    | Constraint                 | Keterangan                                  |
 | ------------ | ------- | -------------------------- | ------------------------------------------- |
@@ -317,7 +351,8 @@ INDEX:
 users
  ├── products (created_by, updated_by)
  ├── product_models (created_by, updated_by)
- ├── defect_types (created_by, updated_by)
+ ├── defect_categories (created_by, updated_by)
+ ├── defects (created_by, updated_by)
  ├── claims (created_by, updated_by)
  ├── claim_status_logs (changed_by)
  ├── samples (created_by, updated_by)
@@ -330,7 +365,8 @@ products
 
 product_models ──→ claims (model_id)
 products       ──→ claims (product_id)
-defect_types   ──→ claims (defect_id)
+defect_categories ──→ defects (category_id)
+defects           ──→ claims (defect_id)
 
 claims
  ├── claim_status_logs (claim_id) — CASCADE
@@ -356,7 +392,8 @@ pqa_summaries
 | users                |           |        |              |         |             |         | ✓           | ✓       |
 | products             | ✓ (filter)| ✓      |              |         |             |         | ✓           |         |
 | product_models       | ✓ (filter)| ✓      |              |         |             |         | ✓           |         |
-| defect_types         | ✓ (chart) | ✓      |              |         |             |         | ✓           |         |
+| defect_categories    |           |        |              |         |             |         | ✓           |         |
+| defects              | ✓ (chart) | ✓      |              |         |             |         | ✓           |         |
 | claims               | ✓         | ✓      | ✓            |         |             | ✓       |             |         |
 | claim_status_logs    |           |        | ✓            |         |             |         |             |         |
 | samples              |           |        | ✓            | ✓       | ✓           |         |             |         |
