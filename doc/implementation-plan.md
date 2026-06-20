@@ -768,7 +768,7 @@ better-sqlite3
 Lokasi database:
 
 ```text
-/data/qc-tracker.db
+/data/local.db
 ```
 
 ---
