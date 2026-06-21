@@ -98,6 +98,8 @@ export default defineEventHandler(async (event) => {
         data: serializeProduct(createdProduct)
       }
     } catch (error) {
+      // Log error asli agar bisa di-debug dari sisi server.
+      console.error('[products.POST] insert failed:', error)
       throw createError({
         statusCode: error instanceof Error && error.message.includes('UNIQUE') ? 409 : 500,
         statusMessage: 'Product save failed',

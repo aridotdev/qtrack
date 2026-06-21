@@ -1,5 +1,9 @@
 import type { AvatarProps } from '@nuxt/ui'
 
+// Re-export tipe-tipe domain claims supaya bisa di-import dari
+// `~/types` (sesuai konvensi existing).
+export * from './claim'
+
 export type UserStatus = 'subscribed' | 'unsubscribed' | 'bounced'
 export type SaleStatus = 'paid' | 'failed' | 'refunded'
 
