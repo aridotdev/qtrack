@@ -382,7 +382,7 @@ const columns: TableColumn<DefectCategory>[] = [{
       v-model:open="isFormOpen"
       :title="selectedCategory ? 'Edit Kategori Defect' : 'Tambah Kategori Defect'"
       :description="selectedCategory ? 'Perbarui detail master kategori defect.' : 'Tambahkan kategori baru untuk mengelompokkan defect.'"
-      :ui="{ footer: 'justify-end' }"
+      :ui="{ content: 'sm:max-w-md', footer: 'justify-end' }"
     >
       <template #body>
         <UForm
@@ -397,6 +397,7 @@ const columns: TableColumn<DefectCategory>[] = [{
               v-model="formState.code"
               placeholder="ELEC"
               autocomplete="off"
+              class="min-w-[50%]"
             />
           </UFormField>
 
@@ -405,12 +406,14 @@ const columns: TableColumn<DefectCategory>[] = [{
               v-model="formState.name"
               placeholder="Electrical"
               autocomplete="off"
+              class="min-w-[50%]"
             />
           </UFormField>
 
           <UFormField name="description" label="Deskripsi">
             <UTextarea
               v-model="formState.description"
+              class="w-full"
               placeholder="Penjelasan singkat tentang kategori ini (opsional)"
               :rows="3"
             />

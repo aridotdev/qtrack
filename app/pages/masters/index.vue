@@ -360,7 +360,7 @@ const columns: TableColumn<Product>[] = [{
       v-model:open="isFormOpen"
       :title="selectedProduct ? 'Edit Produk' : 'Tambah Produk'"
       :description="selectedProduct ? 'Perbarui detail master produk.' : 'Tambahkan produk baru ke master data.'"
-      :ui="{ footer: 'justify-end' }"
+      :ui="{ content: 'sm:max-w-sm', footer: 'justify-end' }"
     >
       <template #body>
         <UForm
@@ -374,7 +374,8 @@ const columns: TableColumn<Product>[] = [{
             <UInput
               v-model="formState.code"
               placeholder="TV"
-              autocomplete="off"
+              autocomplete="on"
+              class="w-full"
             />
           </UFormField>
 
@@ -382,7 +383,8 @@ const columns: TableColumn<Product>[] = [{
             <UInput
               v-model="formState.name"
               placeholder="Television"
-              autocomplete="off"
+              autocomplete="on"
+              class="w-full"
             />
           </UFormField>
 

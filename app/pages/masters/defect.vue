@@ -445,7 +445,7 @@ const columns: TableColumn<Defect>[] = [{
       v-model:open="isFormOpen"
       :title="selectedDefect ? 'Edit Defect' : 'Tambah Defect'"
       :description="selectedDefect ? 'Perbarui detail master defect.' : 'Tambahkan jenis defect baru ke master data.'"
-      :ui="{ footer: 'justify-end' }"
+      :ui="{ content: 'sm:max-w-md', footer: 'justify-end' }"
     >
       <template #body>
         <UForm
@@ -461,6 +461,7 @@ const columns: TableColumn<Defect>[] = [{
               :items="categorySelectItems"
               value-key="value"
               placeholder="Pilih kategori"
+              class="min-w-[50%]"
             />
           </UFormField>
 
@@ -468,7 +469,8 @@ const columns: TableColumn<Defect>[] = [{
             <UInput
               v-model="formState.code"
               placeholder="BAT-LEAK"
-              autocomplete="off"
+              autocomplete="on"
+              class="min-w-[50%]"
             />
           </UFormField>
 
@@ -476,7 +478,8 @@ const columns: TableColumn<Defect>[] = [{
             <UInput
               v-model="formState.name"
               placeholder="Battery Leak"
-              autocomplete="off"
+              autocomplete="on"
+              class="min-w-[50%]"
             />
           </UFormField>
 
@@ -485,6 +488,7 @@ const columns: TableColumn<Defect>[] = [{
               v-model="formState.description"
               placeholder="Penjelasan singkat tentang defect (opsional)"
               :rows="3"
+              class="w-full"
             />
           </UFormField>
 
