@@ -52,7 +52,7 @@ export const roles = {
   qrcc: ac.newRole({
     app: ['view'],
     master: ['view'],
-    claim: ['create', 'read', 'update', 'export'],
+    claim: ['create', 'read', 'update', 'delete', 'export'],
     sample: ['create', 'read', 'update'],
     pqa: ['read'],
     report: ['create', 'read', 'update', 'export']

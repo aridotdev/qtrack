@@ -22,30 +22,66 @@ const props = withDefaults(defineProps<{
   modelValue: string
   placeholder?: string
   disabled?: boolean
+  uploadImage?: (file: File) => Promise<{ url: string, fileName?: string }>
 }>(), {
   placeholder: 'Tulis catatan progres...',
-  disabled: false
+  disabled: false,
+  uploadImage: undefined
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
+  (e: 'imageUploadError', message: string): void
 }>()
 
-/**
- * Override `image` handler: tetap gunakan prompt URL untuk MVP.
- * TODO (Task 3.1): integrasikan picker + upload ke endpoint attachments.
- */
+const isUploadingImage = ref(false)
+
+function insertImage(editor: unknown, url: string, alt: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(editor as any).chain().focus().setImage({ src: url, alt }).run()
+}
+
+function fallbackPromptUrl(editor: unknown) {
+  const url = window.prompt('URL gambar', 'https://')
+  if (!url) return
+  insertImage(editor, url, 'gambar')
+}
+
+function pickImage(editor: unknown) {
+  if (!props.uploadImage) {
+    fallbackPromptUrl(editor)
+    return
+  }
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp'
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0]
+    if (!file) return
+
+    isUploadingImage.value = true
+    try {
+      const uploaded = await props.uploadImage!(file)
+      insertImage(editor, uploaded.url, uploaded.fileName ?? file.name)
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Gagal mengunggah gambar'
+      emit('imageUploadError', message)
+    } finally {
+      isUploadingImage.value = false
+    }
+  }, { once: true })
+  input.click()
+}
+
 const handlers = {
   image: {
-    canExecute: () => !props.disabled,
-    execute: (editor: { chain: () => { focus: () => unknown } }) => {
-      const url = window.prompt('URL gambar', 'https://')
-      if (!url) return
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(editor as any).chain().focus().setImage({ src: url, alt: 'gambar' }).run()
-    },
+    canExecute: () => !props.disabled && !isUploadingImage.value,
+    execute: (editor: unknown) => pickImage(editor),
     isActive: () => false,
-    isDisabled: () => props.disabled
+    isDisabled: () => props.disabled || isUploadingImage.value
   }
 }
 </script>

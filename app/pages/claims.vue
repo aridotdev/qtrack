@@ -14,6 +14,7 @@
  * composable sudah siap dan akan otomatis aktif saat route handler tersedia.
  */
 import { getPaginationRowModel } from '@tanstack/table-core'
+import { createAuthClient } from 'better-auth/vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { Row } from '@tanstack/table-core'
 import type { Claim, ClaimStatus, ClaimStatusFilter } from '~/types'
@@ -37,8 +38,9 @@ const UBadge = resolveComponent('UBadge')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UIcon = resolveComponent('UIcon')
 
-const toast = useToast()
 const table = useTemplateRef('table')
+const authClient = createAuthClient()
+const session = authClient.useSession()
 
 // ---------------------------------------------------------------------------
 // Filter state
@@ -68,6 +70,20 @@ const claims = computed<Claim[]>(() => {
   return payload?.data ?? []
 })
 
+const currentUser = computed(() => session.value?.data?.user ?? null)
+
+function canManageClaim(claim: Claim) {
+  const user = currentUser.value
+  if (!user) return false
+  if (user.role === 'admin') return true
+  return user.role === 'qrcc' && claim.createdBy === user.id
+}
+
+const canCreateClaim = computed(() => {
+  const role = currentUser.value?.role
+  return role === 'admin' || role === 'qrcc'
+})
+
 // Reset pagination saat filter berubah.
 watch([debouncedSearch, statusFilter], () => {
   table.value?.tableApi?.setPageIndex(0)
@@ -81,11 +97,13 @@ const isFormOpen = ref(false)
 const editingClaim = ref<Claim | null>(null)
 
 function openCreateForm() {
+  if (!canCreateClaim.value) return
   editingClaim.value = null
   isFormOpen.value = true
 }
 
 function openEditForm(claim: Claim) {
+  if (!canManageClaim(claim)) return
   editingClaim.value = claim
   isFormOpen.value = true
 }
@@ -111,26 +129,24 @@ function statusColor(status: ClaimStatus) {
 
 function getRowItems(row: Row<Claim>) {
   const claim = row.original
-  return [
-    [{
+  const firstGroup = [{
       label: 'Lihat Detail',
       icon: 'i-lucide-eye',
-      disabled: true,
       onSelect: () => {
-        // Navigasi ke Detail Claim diimplementasikan pada Task 2.5.
-        toast.add({
-          title: 'Detail Claim',
-          description: `Navigasi ke /claims/${claim.id} akan diaktifkan di Task 2.5.`,
-          icon: 'i-lucide-info'
-        })
+        navigateTo(`/claims/${claim.id}`)
       }
-    }],
-    [{
+    }]
+  const groups = [firstGroup]
+
+  if (canManageClaim(claim)) {
+    groups.push([{
       label: 'Edit',
       icon: 'i-lucide-pencil',
       onSelect: () => openEditForm(claim)
-    }]
-  ]
+    }])
+  }
+
+  return groups
 }
 
 const columns: TableColumn<Claim>[] = [
@@ -212,6 +228,7 @@ const columns: TableColumn<Claim>[] = [
 
         <template #right>
           <UButton
+            v-if="canCreateClaim"
             icon="i-lucide-plus"
             label="Claim Baru"
             @click="openCreateForm"

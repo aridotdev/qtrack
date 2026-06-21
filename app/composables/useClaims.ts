@@ -1,4 +1,4 @@
-import type { Claim, ClaimCreatePayload, ClaimStatusFilter, ClaimUpdatePayload, ClaimStatus, ClaimProgressLog, ClaimProgressLogCreatePayload } from '~/types'
+import type { Claim, ClaimCreatePayload, ClaimStatusFilter, ClaimUpdatePayload, ClaimStatus, ClaimProgressLog, ClaimProgressLogCreatePayload, IssuePhoto, ClaimAttachment } from '~/types'
 
 /**
  * Composable `useClaims()` — wrapper di atas `useFetch`/$fetch untuk
@@ -92,6 +92,21 @@ export function useClaimProgressLogs(claimId: Ref<number | null> | number | null
   })
 }
 
+/**
+ * Ambil daftar Issue Photos untuk satu claim (entity_type='claim').
+ * Digunakan oleh section Issue Photos di Detail Claim (Task 2.6).
+ */
+export function useClaimIssuePhotos(claimId: Ref<number | null> | number | null) {
+  return useFetch<{ success: boolean, data: IssuePhoto[] }>(() => {
+    const value = unwrap(claimId, null)
+    return value ? `/api/claims/${value}/photos` : ''
+  }, {
+    lazy: true,
+    watch: [() => unwrap(claimId, null)],
+    default: () => ({ success: false, data: [] as IssuePhoto[] })
+  })
+}
+
 // ============================================================================
 // Mutators — menggunakan `$fetch` langsung karena `useFetch` untuk
 // POST/PUT/DELETE kurang ergonomis (kita hanya ingin response tunggal,
@@ -166,5 +181,52 @@ export async function createClaimProgressLog(payload: ClaimProgressLogCreatePayl
     return res.data
   } catch (error) {
     throw new Error(getErrorMessage(error, 'Gagal menambah jurnal progres'))
+  }
+}
+
+/** Update progress log existing. Dipakai saat editor membuat draft untuk upload inline image. */
+export async function updateClaimProgressLog(payload: {
+  claimId: number
+  progressId: number
+  progressDate?: number
+  notes?: string
+}): Promise<ClaimProgressLog> {
+  try {
+    const { claimId, progressId, ...rest } = payload
+    const res = await $fetch<{ success: boolean, data: ClaimProgressLog }>(`/api/claims/${claimId}/progress/${progressId}`, {
+      method: 'PUT',
+      body: rest
+    })
+    return res.data
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Gagal memperbarui jurnal progres'))
+  }
+}
+
+/** Hapus progress log. Dipakai untuk cleanup draft jika user batal setelah upload gambar. */
+export async function deleteClaimProgressLog(claimId: number, progressId: number): Promise<void> {
+  try {
+    await $fetch(`/api/claims/${claimId}/progress/${progressId}`, { method: 'DELETE' })
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Gagal menghapus jurnal progres'))
+  }
+}
+
+/** Upload gambar inline Rich Text Editor ke attachment entity `claim_progress`. */
+export async function uploadClaimProgressImage(
+  claimId: number,
+  progressId: number,
+  file: File
+): Promise<ClaimAttachment> {
+  try {
+    const formData = new FormData()
+    formData.append('image', file, file.name)
+    const res = await $fetch<{ success: boolean, data: ClaimAttachment }>(`/api/claims/${claimId}/progress/${progressId}/attachments`, {
+      method: 'POST',
+      body: formData
+    })
+    return res.data
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Gagal mengunggah gambar progress'))
   }
 }

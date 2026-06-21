@@ -193,10 +193,19 @@ function resetForm() {
   formState.defectId = 0
   formState.source = ''
   formState.description = ''
-  photoDrafts.value.forEach(p => {
-    try { URL.revokeObjectURL(p.previewUrl) } catch { /* noop */ }
-  })
+  // Salin dulu ke variabel lokal sebelum clear, lalu revoke di try/catch
+  // untuk mencegah memory leak tanpa memblokir reset jika URL sudah invalid.
+  const drafts = photoDrafts.value
   photoDrafts.value = []
+  for (const draft of drafts) {
+    if (draft?.previewUrl) {
+      try {
+        URL.revokeObjectURL(draft.previewUrl)
+      } catch {
+        /* noop - abaikan jika URL sudah tidak valid */
+      }
+    }
+  }
 }
 
 function populateFromClaim(c: Claim) {

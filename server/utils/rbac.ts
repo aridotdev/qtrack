@@ -1,7 +1,7 @@
 // server/utils/rbac.ts
 import type { H3Event } from 'h3'
 import { createError } from 'h3'
-import { auth, ac, roles, type AppRole } from './auth'
+import { auth, roles, type AppRole } from './auth'
 
 /**
  * Resource × Action yang dipakai aplikasi.
@@ -104,6 +104,39 @@ export const hasAccess = (
   return allowed.includes(action) || allowed.includes('manage')
 }
 
-// Re-export untuk memudahkan import dari handler:
-//   import { auth, ac, roles, type AppRole } from '~~/server/utils/auth'
-export { auth, ac, roles, type AppRole }
+/**
+ * Policy ownership untuk data claim:
+ * - admin boleh mengubah semua claim
+ * - qrcc hanya boleh mengubah claim yang dibuat oleh dirinya sendiri
+ * - role lain read-only untuk claim
+ */
+export const canManageOwnedClaim = (
+  user: { id?: string | null, role?: string | null } | null | undefined,
+  ownerId: string | null | undefined
+): boolean => {
+  if (!user?.role || !user.id) return false
+  if (user.role === 'admin') return true
+  return user.role === 'qrcc' && ownerId === user.id
+}
+
+export const assertCanManageOwnedClaim = (
+  user: { id?: string | null, role?: string | null },
+  ownerId: string | null | undefined
+) => {
+  if (!canManageOwnedClaim(user, ownerId)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: 'Hanya admin atau QRCC pemilik claim yang boleh melakukan aksi ini'
+    })
+  }
+}
+
+// `auth` (Better Auth instance), `ac` (access control), dan `roles`
+// di-export oleh `server/utils/auth.ts` dan otomatis tersedia via
+// Nuxt auto-import di server code. Tidak perlu re-export dari sini —
+// melakukannya akan menyebabkan warning "Duplicated imports" karena
+// Nuxt bingung menentukan sumber auto-import.
+//
+// Jika Anda butuh tipe `AppRole` atau `AccessAction` di luar handler,
+// import langsung dari `~~/server/utils/auth` / `~~/server/utils/rbac`.

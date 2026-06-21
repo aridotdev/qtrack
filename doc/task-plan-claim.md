@@ -61,9 +61,9 @@ Memanfaatkan tabel `attachments` dengan metode Polymorphic:
 ## 3. Rencana Tugas (Task Plan / Sprint Backlog)
 
 ### Phase 1: Database & Backend (Estimasi: 2 Hari)
-* [ ] **Task 1.1:** Setup migrasi skema tabel `claims` dan `claim_status_logs` menggunakan Drizzle ORM.
-* [ ] **Task 1.2:** Setup migrasi skema tabel baru `claim_progress_logs`.
-* [ ] **Task 1.3:** Buat logika *Service* pembuat `claim_code` otomatis (`CLM-YYYY-NNN`).
+* [x] **Task 1.1:** Setup migrasi skema tabel `claims` dan `claim_status_logs` menggunakan Drizzle ORM.
+* [x] **Task 1.2:** Setup migrasi skema tabel baru `claim_progress_logs`.
+* [x] **Task 1.3:** Buat logika *Service* pembuat `claim_code` otomatis (`CLM-YYYY-NNN`).
 * [ ] **Task 1.4:** Buat API CRUD untuk `claims` (Implementasi validasi Zod schema).
 * [ ] **Task 1.5:** Implementasi Database Transaction saat Create Claim + Upload Attachment awal (termasuk **Issue Photos** dengan `entity_type = 'claim'`).
 * [ ] **Task 1.6:** Implementasi Database Transaction saat Update Status (memasukkan ke `claim_status_logs`).
@@ -71,13 +71,15 @@ Memanfaatkan tabel `attachments` dengan metode Polymorphic:
 * [ ] **Task 1.8 [NEW]:** Buat API khusus untuk upload & delete **Issue Photos** pada claim yang sudah ada (endpoint: `POST /api/claims/:id/photos` & `DELETE /api/claims/:id/photos/:photoId`). Validasi mime-type (jpeg/png/webp) dan ukuran max 5MB.
 
 ### Phase 2: Frontend Layout & Components (Estimasi: 2 Hari)
-* [ ] **Task 2.1:** Buat UI List Claim dengan tabel data dan filter pencarian (Nuxt UI).
-* [ ] **Task 2.2:** Integrasi *Composable* `useClaims()` untuk fetching data ke tabel List.
-* [ ] **Task 2.3:** Buat Form Create/Edit Claim. Terapkan rule dropdown bertingkat (Product -> Model filter). **[NEW]** Tambahkan komponen `IssuePhotoUploader` (multi-file picker dengan preview, max 5 foto, validasi client-side).
-* [ ] **Task 2.4:** Instalasi dan konfigurasi Rich Text Editor (WYSIWYG spt TipTap/Quill) untuk input `notes` progress.
-* [ ] **Task 2.5:** Buat UI Detail Claim. Slicing section untuk merender HTML dari `claim_progress_logs` secara kronologis (berdasarkan `progress_date`).
-* [ ] **Task 2.6 [NEW]:** Buat section **Issue Photos** di halaman Detail Claim (thumbnail grid + lightbox + tombol Add/Remove Photo sesuai hak akses).
-* [ ] **Task 2.7 [NEW]:** Komponen reusable `PhotoLightbox.vue` (modal viewer dengan navigasi next/prev/close via keyboard & klik).
+
+
+* [x] **Task 2.1:** Buat UI List Claim dengan tabel data dan filter pencarian (Nuxt UI).
+* [x] **Task 2.2:** Integrasi *Composable* `useClaims()` untuk fetching data ke tabel List.
+* [x] **Task 2.3:** Buat Form Create/Edit Claim. Terapkan rule dropdown bertingkat (Product -> Model filter). **[NEW]** Tambahkan komponen `IssuePhotoUploader` (multi-file picker dengan preview, max 5 foto, validasi client-side).
+* [x] **Task 2.4:** Instalasi dan konfigurasi Rich Text Editor (WYSIWYG spt TipTap/Quill) untuk input `notes` progress.
+* [x] **Task 2.5:** Buat UI Detail Claim. Slicing section untuk merender HTML dari `claim_progress_logs` secara kronologis (berdasarkan `progress_date`).
+* [x] **Task 2.6 [NEW]:** Buat section **Issue Photos** di halaman Detail Claim (thumbnail grid + lightbox + tombol Add/Remove Photo sesuai hak akses).
+* [x] **Task 2.7 [NEW]:** Komponen reusable `PhotoLightbox.vue` (modal viewer dengan navigasi next/prev/close via keyboard & klik).
 
 ### Phase 3: Integration & Progress Attachment (Estimasi: 1 Hari)
 * [ ] **Task 3.1:** Implementasi logic upload gambar dari dalam Rich Text Editor agar masuk ke API `attachments` dengan entity `claim_progress`.

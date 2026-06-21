@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 import { db } from '../../database'
-import { products } from '../../database/schema'
+import { claims, products } from '../../database/schema'
 import { requireAccess } from '../../utils/rbac'
 
 const productSchema = z.object({
@@ -125,6 +125,19 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'DELETE') {
     const user = await requireAccess(event, 'master', 'manage')
     await findProduct(id)
+
+    const [usedClaim] = await db
+      .select({ id: claims.id })
+      .from(claims)
+      .where(eq(claims.productId, id))
+      .limit(1)
+    if (usedClaim) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Product is in use',
+        message: 'Produk tidak bisa dihapus karena sudah dipakai di claim'
+      })
+    }
 
     const [deletedProduct] = await db.update(products)
       .set({

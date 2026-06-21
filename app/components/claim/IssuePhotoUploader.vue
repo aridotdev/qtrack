@@ -155,11 +155,9 @@ function onDragLeave() {
 }
 
 // Revoke semua preview URL saat komponen di-unmount untuk mencegah memory leak.
-watch(photos, () => {
-  // Setiap kali photos berubah, kita sudah mem-revoke URL untuk item yang
-  // dihapus. Item baru dibuat dengan URL baru. Tidak ada aksi tambahan di sini.
-}, { deep: true })
-
+// Catatan: parent (ClaimFormModal) juga memanggil revoke di resetForm(), tapi
+// tidak ada efek samping karena revokeObjectURL pada URL yang sudah di-revoke
+// hanya menjadi no-op (aman dipanggil beberapa kali).
 onBeforeUnmount(() => {
   photos.value.forEach(p => revokePreview(p.previewUrl))
 })

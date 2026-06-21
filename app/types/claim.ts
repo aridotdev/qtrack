@@ -122,6 +122,20 @@ export interface IssuePhoto {
   url: string
 }
 
+export interface ClaimAttachment {
+  id: number
+  entityType: 'claim' | 'claim_progress'
+  entityId: number
+  fileName: string
+  filePath: string
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
+  fileSize: number
+  uploadedBy: string
+  uploadedByName: string | null
+  uploadedAt: string
+  url: string
+}
+
 /** Bentuk response API generic (sesuai pola existing products/defects). */
 export interface ApiResponse<T> {
   success: boolean
