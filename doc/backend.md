@@ -10,7 +10,7 @@
 | name       | text    | NOT NULL         | Nama lengkap user             |
 | email      | text    | NOT NULL, UNIQUE | Email login                   |
 | password   | text    | NOT NULL         | Password (di-hash Better Auth)|
-| role       | text    | NOT NULL         | `admin` / `qrcc` / `viewer`   |
+| role       | text    | NOT NULL         | `admin` / `qrcc` / `pqa` / `management` |
 | created_at | integer | NOT NULL         | Waktu dibuat (Unix timestamp) |
 | updated_at | integer | NOT NULL         | Waktu diupdate                |
 
@@ -22,6 +22,8 @@ INDEX:
 - Password tidak pernah disimpan plaintext
 - Session expire otomatis setelah 8 jam
 - User hanya bisa dibuat oleh Admin, bukan self-register
+- Role `pqa` adalah pengguna utama yang menangani jurnal progres dan analisa PQA
+- Role `management` bersifat read-only untuk dashboard & laporan
 
 **Digunakan di halaman:** Master Data (tab Users) · Profile
 
@@ -172,7 +174,11 @@ INDEX:
 📌 CATATAN:
 - `claim_code` di-generate otomatis oleh service layer, bukan input user
 - Status hanya boleh maju sesuai alur: OPEN → WAITING_PQA → ON_PROGRESS → CLOSED
-- Setiap perubahan status otomatis mencatat log ke tabel `claim_status_logs`
+- Setiap perubahan status otomatis mencatat log ke tabel `claim_status_logs` dalam satu *database transaction*
+- Pembuatan claim + attachment awal (**termasuk Issue Photos**) dilakukan dalam satu *database transaction* di service layer
+- **Issue Photos**: Saat create claim, QRCC dapat meng-upload hingga 5 foto dokumentasi visual defect/issue (`jpeg`/`png`/`webp`, max 5MB/foto). Disimpan ke tabel `attachments` dengan `entity_type='claim'`. Field ini direkomendasikan (tidak wajib) untuk dokumentasi visual.
+- Hak akses: Admin (full CRUD), QRCC (CRUD claim miliknya), PQA & Viewer (read-only)
+- Tombol Edit/Delete hanya muncul untuk Admin dan QRCC pemilik claim
 
 **Digunakan di halaman:** Claims (list & form) · Detail Claim · Dashboard (KPI cards, tabel terbaru, chart trend) · Samples (relasi) · PQA Summary (relasi) · Reports
 
@@ -192,16 +198,49 @@ INDEX:
 INDEX:
 - INDEX (claim_id)
 - INDEX (changed_at)
+- INDEX (claim_id, changed_at)
 
 📌 CATATAN:
-- Dibuat otomatis oleh service, tidak pernah dibuat manual dari UI
+- Dibuat otomatis oleh service dalam satu *database transaction* saat update status, tidak pernah dibuat manual dari UI
 - Jika claim dihapus, semua log ikut terhapus (CASCADE)
+- Merupakan implementasi *State Machine* perubahan status claim
 
 **Digunakan di halaman:** Detail Claim (section Timeline Status)
 
 ---
 
-## 8. samples
+## 8. claim_progress_logs
+
+> **[NEW]** Jurnal progres harian klaim. Disusun kronologis berdasarkan `progress_date` di halaman Detail Claim.
+
+| Kolom          | Tipe    | Constraint                          | Keterangan                                              |
+| -------------- | ------- | ----------------------------------- | ------------------------------------------------------- |
+| id             | integer | PK                                  | ID progress log                                         |
+| claim_id       | integer | FK → claims.id, onDelete: CASCADE   | Claim terkait                                           |
+| progress_date  | integer | NOT NULL                            | Tanggal aktual kegiatan (Unix timestamp, bukan created_at) |
+| notes          | text    | NOT NULL                            | Output HTML dari Rich Text Editor (bold, tabel, gambar) |
+| created_by     | text    | FK → users.id                       | ID user yang membuat entri                              |
+| created_at     | integer | NOT NULL                            | Waktu record dibuat (Unix timestamp)                    |
+| updated_at     | integer | NOT NULL                            | Waktu record diupdate                                   |
+
+INDEX:
+- INDEX (claim_id)
+- INDEX (progress_date)
+- INDEX (claim_id, progress_date)
+
+📌 CATATAN:
+- `notes` berisi **HTML string** hasil WYSIWYG editor (spt TipTap/Quill). HTML harus di-sanitize sebelum dirender di UI
+- `progress_date` bisa berbeda dari `created_at` — user dapat backdate progres ke tanggal kegiatan yang sebenarnya
+- Sorting di UI berdasarkan `progress_date` ASC (kronologis)
+- Gambar yang disisipkan di dalam notes direferensikan via tabel `attachments` (`entity_type = 'claim_progress'`, `entity_id = id log ini`)
+- Jika claim dihapus, semua progress log ikut terhapus (CASCADE)
+- Hak akses: QRCC & Admin (full CRUD), PQA (create & read — dapat menambahkan jurnal progres harian)
+
+**Digunakan di halaman:** Detail Claim (section Progress Journal / Jurnal Progres)
+
+---
+
+## 9. samples
 
 | Kolom         | Tipe    | Constraint                          | Keterangan                           |
 | ------------- | ------- | ----------------------------------- | ------------------------------------ |
@@ -234,7 +273,7 @@ INDEX:
 
 ---
 
-## 9. sample_parts
+## 10. sample_parts
 
 | Kolom      | Tipe    | Constraint                           | Keterangan                    |
 | ---------- | ------- | ------------------------------------ | ----------------------------- |
@@ -256,7 +295,7 @@ INDEX:
 
 ---
 
-## 10. pqa_summaries
+## 11. pqa_summaries
 
 | Kolom                   | Tipe    | Constraint                           | Keterangan                                          |
 | ----------------------- | ------- | ------------------------------------ | --------------------------------------------------- |
@@ -288,16 +327,16 @@ INDEX:
 
 ---
 
-## 11. attachments
+## 12. attachments
 
 | Kolom       | Tipe    | Constraint    | Keterangan                                         |
 | ----------- | ------- | ------------- | -------------------------------------------------- |
 | id          | integer | PK            | ID attachment                                      |
-| entity_type | text    | NOT NULL      | `claim` / `sample` / `pqa`                         |
+| entity_type | text    | NOT NULL      | `claim` / `claim_progress` / `sample` / `pqa`      |
 | entity_id   | integer | NOT NULL      | ID dari entitas terkait                            |
 | file_name   | text    | NOT NULL      | Nama file asli                                     |
 | file_path   | text    | NOT NULL      | Path file di server (`uploads/YYYY/MM/filename`)   |
-| mime_type   | text    | NOT NULL      | `image/jpeg` / `image/png` / `application/pdf` / `application/vnd...docx` |
+| mime_type   | text    | NOT NULL      | `image/jpeg` / `image/png` / `image/webp` / `application/pdf` / `application/vnd...docx` |
 | file_size   | integer | NOT NULL      | Ukuran file dalam bytes (max 10 MB)                |
 | uploaded_by | text    | FK → users.id | ID user yang mengupload                            |
 | uploaded_at | integer | NOT NULL      | Waktu upload (Unix timestamp)                      |
@@ -305,17 +344,26 @@ INDEX:
 INDEX:
 - INDEX (entity_type, entity_id)
 - INDEX (uploaded_at)
+- INDEX (entity_type, entity_id, uploaded_at)
 
 📌 CATATAN:
 - Tidak menggunakan FK ke entitas spesifik; relasi dikelola via `entity_type` + `entity_id` (polymorphic)
+- Untuk gambar yang disisipkan di dalam jurnal progres klaim: `entity_type = 'claim_progress'` & `entity_id = claim_progress_logs.id`
+- Untuk lampiran umum klaim (termasuk **Issue Photos**): `entity_type = 'claim'` & `entity_id = claims.id`
 - Validasi mime type dan ukuran file dilakukan di service layer sebelum disimpan
+- **Issue Photos (constraint khusus)**:
+  - Wajib `mime_type` ∈ `{image/jpeg, image/png, image/webp}`
+  - Wajib `file_size` ≤ 5 MB (5242880 bytes) — lebih ketat dari limit global 10 MB untuk attachment lain
+  - Maksimal 5 foto per claim — divalidasi di service layer (count by `entity_type='claim'` & `entity_id=claim.id`)
+  - Endpoint khusus: `POST /api/claims/:id/photos` (upload) & `DELETE /api/claims/:id/photos/:photoId`
 - File fisik disimpan di folder `uploads/YYYY/MM/`; database hanya menyimpan metadata
+- Saat claim dihapus, metadata attachment terkait akan hilang (`CASCADE`); file fisik di-storage perlu di-*cleanup* via service layer (best-effort)
 
-**Digunakan di halaman:** Detail Claim (section Attachment) · Samples (attachment) · PQA Summary (attachment)
+**Digunakan di halaman:** Detail Claim (section Issue Photos, Attachment & Progress Journal) · Samples (attachment) · PQA Summary (attachment)
 
 ---
 
-## 12. monthly_reports
+## 13. monthly_reports
 
 | Kolom        | Tipe    | Constraint                 | Keterangan                                  |
 | ------------ | ------- | -------------------------- | ------------------------------------------- |
@@ -355,6 +403,7 @@ users
  ├── defects (created_by, updated_by)
  ├── claims (created_by, updated_by)
  ├── claim_status_logs (changed_by)
+ ├── claim_progress_logs (created_by)
  ├── samples (created_by, updated_by)
  ├── pqa_summaries (created_by, updated_by)
  ├── attachments (uploaded_by)
@@ -369,10 +418,14 @@ defect_categories ──→ defects (category_id)
 defects           ──→ claims (defect_id)
 
 claims
- ├── claim_status_logs (claim_id) — CASCADE
- ├── samples (claim_id)
- ├── pqa_summaries (claim_id)
- └── attachments (entity_type='claim', entity_id)
+ ├── claim_status_logs (claim_id)    — CASCADE
+ ├── claim_progress_logs (claim_id) — CASCADE
+ ├── samples (claim_id)             — RESTRICT
+ ├── pqa_summaries (claim_id)       — RESTRICT
+ └── attachments (entity_type='claim', entity_id)  ← termasuk Issue Photos
+
+claim_progress_logs
+ └── attachments (entity_type='claim_progress', entity_id)
 
 samples
  ├── sample_parts (sample_id) — CASCADE
@@ -396,6 +449,7 @@ pqa_summaries
 | defects              | ✓ (chart) | ✓      |              |         |             |         | ✓           |         |
 | claims               | ✓         | ✓      | ✓            |         |             | ✓       |             |         |
 | claim_status_logs    |           |        | ✓            |         |             |         |             |         |
+| claim_progress_logs  |           |        | ✓            |         |             |         |             |         |
 | samples              |           |        | ✓            | ✓       | ✓           |         |             |         |
 | sample_parts         |           |        |              | ✓       |             |         |             |         |
 | pqa_summaries        |           |        | ✓            |         | ✓           |         |             |         |

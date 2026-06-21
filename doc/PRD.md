@@ -25,7 +25,7 @@ Membangun web application terpusat yang menggantikan sistem Excel, memungkinkan 
 | Peran | Deskripsi |
 |---|---|
 | **QRCC** | Pengguna utama. Mengelola seluruh data claim, sample, dan laporan |
-| **PQA (Product Quality Assurance)** | Menerima dan mengisi hasil analisa sample |
+| **PQA (Product Quality Assurance)** | Menerima dan mengisi hasil analisa sample, update jurnal harian atau progress |
 | **Manager / Supervisor** | Memantau dashboard dan laporan bulanan |
 
 ---
