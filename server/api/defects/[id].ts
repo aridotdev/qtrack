@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { defects, defectCategories } from '../../database/schema'
 import { requireAccess } from '../../utils/rbac'
+import { assertNotUsedInClaims } from '../../utils/master-guard'
 
 const defectSchema = z.object({
   code: z.string().trim().min(1, 'Kode defect wajib diisi').max(32, 'Kode defect maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -161,6 +162,9 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'DELETE') {
     const user = await requireAccess(event, 'master', 'manage')
     await findDefect(id)
+
+    // Task 3.3 — Cegah soft-delete jika defect dipakai di claim manapun.
+    await assertNotUsedInClaims({ defectId: id })
 
     const [deletedDefect] = await db.update(defects)
       .set({

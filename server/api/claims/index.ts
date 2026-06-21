@@ -255,55 +255,69 @@ export default defineEventHandler(async (event) => {
     }
 
     // Insert claim → save files → insert attachments.
-    // Compensating cleanup on failure.
+    //
+    // Task 1.5 — Atomic DB Transaction. `db.transaction()` membungkus
+    // `insert(claims)` + `insert(attachments)` agar keduanya commit
+    // bersamaan atau rollback bersamaan. Jika salah satu insert gagal,
+    // tidak akan ada orphan `claims` row tanpa attachment rows (atau
+    // sebaliknya). File I/O (`saveFile`) tetap di LUAR transaction
+    // karena filesystem tidak transactional — namun jika transaction
+    // rollback setelah file ditulis, catch block di bawah melakukan
+    // compensating delete untuk file yang sudah terlanjur disimpan.
+    //
+    // Pola ini menutup celah terbesar atomicity (insert DB) tanpa
+    // meng-over-engineer file storage. Batas maks 5 foto membuat
+    // transaction hold time tetap singkat.
     let createdClaim: typeof claims.$inferSelect | undefined
     const savedFiles: Array<{ relativePath: string }> = []
 
     try {
-      const inserted = await db.insert(claims).values({
-        claimCode: generated.code,
-        productId: parsed.data.productId,
-        modelId: parsed.data.modelId,
-        defectId: parsed.data.defectId,
-        source: parsed.data.source,
-        description: parsed.data.description,
-        status: 'OPEN',
-        createdBy: user.id,
-        updatedBy: user.id
-      }).returning()
-      createdClaim = inserted[0]
-      if (!createdClaim) throw new Error('Insert returned no row')
+      createdClaim = await db.transaction(async (tx) => {
+        const inserted = await tx.insert(claims).values({
+          claimCode: generated.code,
+          productId: parsed.data.productId,
+          modelId: parsed.data.modelId,
+          defectId: parsed.data.defectId,
+          source: parsed.data.source,
+          description: parsed.data.description,
+          status: 'OPEN',
+          createdBy: user.id,
+          updatedBy: user.id
+        }).returning()
+        const claim = inserted[0]
+        if (!claim) throw new Error('Insert returned no row')
 
-      // Simpan foto (validasi satu per satu agar error message informatif)
-      for (const file of photoFiles) {
-        if (!isAllowedMimeType(file.type)) {
-          throw new StorageError(`Format ${file.name} tidak didukung. Gunakan JPEG, PNG, atau WebP.`, 'UNSUPPORTED_MIME')
+        // Simpan foto (validasi satu per satu agar error message informatif)
+        for (const file of photoFiles) {
+          if (!isAllowedMimeType(file.type)) {
+            throw new StorageError(`Format ${file.name} tidak didukung. Gunakan JPEG, PNG, atau WebP.`, 'UNSUPPORTED_MIME')
+          }
+          if (file.size > MAX_FILE_SIZE) {
+            throw new StorageError(`Ukuran ${file.name} melebihi batas ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)} MB`, 'FILE_TOO_LARGE')
+          }
+          const saved = await saveFile(
+            { name: file.name, type: file.type, size: file.size, data: file.data },
+            'claim',
+            claim.id
+          )
+          savedFiles.push({ relativePath: saved.relativePath })
+          await tx.insert(attachments).values({
+            entityType: 'claim',
+            entityId: claim.id,
+            fileName: saved.fileName,
+            filePath: saved.relativePath,
+            mimeType: saved.mimeType,
+            fileSize: saved.fileSize,
+            uploadedBy: user.id
+          })
         }
-        if (file.size > MAX_FILE_SIZE) {
-          throw new StorageError(`Ukuran ${file.name} melebihi batas ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)} MB`, 'FILE_TOO_LARGE')
-        }
-        const saved = await saveFile(
-          { name: file.name, type: file.type, size: file.size, data: file.data },
-          'claim',
-          createdClaim.id
-        )
-        savedFiles.push({ relativePath: saved.relativePath })
-        await db.insert(attachments).values({
-          entityType: 'claim',
-          entityId: createdClaim.id,
-          fileName: saved.fileName,
-          filePath: saved.relativePath,
-          mimeType: saved.mimeType,
-          fileSize: saved.fileSize,
-          uploadedBy: user.id
-        })
-      }
+
+        return claim
+      })
+      if (!createdClaim) throw new Error('Transaction returned no claim')
     } catch (error) {
-      // Compensating cleanup: hapus claim + file
-      if (createdClaim) {
-        try { await db.delete(claims).where(eq(claims.id, createdClaim.id)) }
-        catch (e) { console.error('[claims.POST] cleanup claim failed:', e) }
-      }
+      // Compensating cleanup: hapus file fisik yang sudah ditulis
+      // (DB sudah otomatis rollback oleh transaction).
       for (const f of savedFiles) {
         try { await deleteFile(f.relativePath) }
         catch (e) { console.error('[claims.POST] cleanup file failed:', e) }

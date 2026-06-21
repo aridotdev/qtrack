@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '../../database'
 import { defectCategories } from '../../database/schema'
 import { requireAccess } from '../../utils/rbac'
+import { assertNotUsedInClaims } from '../../utils/master-guard'
 
 const categorySchema = z.object({
   code: z.string().trim().min(1, 'Kode kategori wajib diisi').max(32, 'Kode kategori maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -133,34 +134,32 @@ export default defineEventHandler(async (event) => {
     const user = await requireAccess(event, 'master', 'manage')
     await findCategory(id)
 
-    try {
-      const [deletedCategory] = await db.update(defectCategories)
-        .set({
-          isActive: false,
-          updatedBy: user.id,
-          updatedAt: new Date()
-        })
-        .where(eq(defectCategories.id, id))
-        .returning()
+    // Task 3.3 — Cegah soft-delete jika masih ada defect aktif di kategori ini.
+    // Sebelumnya, logika ini hanya andalkan deteksi FOREIGN KEY error dari
+    // catch block, yang memberikan pesan kurang informatif. Guard eksplisit
+    // memberikan error 409 + pesan spesifik sebelum mencoba update.
+    await assertNotUsedInClaims({ categoryId: id })
 
-      if (!deletedCategory) {
-        throw createError({
-          statusCode: 500,
-          statusMessage: 'Category delete failed',
-          message: 'Kategori defect gagal dinonaktifkan'
-        })
-      }
-
-      return {
-        success: true,
-        data: serializeCategory(deletedCategory)
-      }
-    } catch (error) {
-      throw createError({
-        statusCode: error instanceof Error && error.message.includes('FOREIGN') ? 409 : 500,
-        statusMessage: 'Category delete failed',
-        message: getDatabaseErrorMessage(error)
+    const [deletedCategory] = await db.update(defectCategories)
+      .set({
+        isActive: false,
+        updatedBy: user.id,
+        updatedAt: new Date()
       })
+      .where(eq(defectCategories.id, id))
+      .returning()
+
+    if (!deletedCategory) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Category delete failed',
+        message: 'Kategori defect gagal dinonaktifkan'
+      })
+    }
+
+    return {
+      success: true,
+      data: serializeCategory(deletedCategory)
     }
   }
 

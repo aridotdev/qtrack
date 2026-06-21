@@ -3,8 +3,9 @@ import type { H3Event } from 'h3'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 import { db } from '../../database'
-import { claims, products } from '../../database/schema'
+import { products } from '../../database/schema'
 import { requireAccess } from '../../utils/rbac'
+import { assertNotUsedInClaims } from '../../utils/master-guard'
 
 const productSchema = z.object({
   code: z.string().trim().min(1, 'Kode produk wajib diisi').max(32, 'Kode produk maksimal 32 karakter').transform(value => value.toUpperCase()),
@@ -126,18 +127,10 @@ export default defineEventHandler(async (event) => {
     const user = await requireAccess(event, 'master', 'manage')
     await findProduct(id)
 
-    const [usedClaim] = await db
-      .select({ id: claims.id })
-      .from(claims)
-      .where(eq(claims.productId, id))
-      .limit(1)
-    if (usedClaim) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Product is in use',
-        message: 'Produk tidak bisa dihapus karena sudah dipakai di claim'
-      })
-    }
+    // Task 3.3 — Cegah soft-delete jika produk dipakai di claim manapun.
+    // (FK di `claims.productId` adalah RESTRICT, tapi kita pakai soft-delete
+    //  sehingga guard aplikasi diperlukan agar pesan error informatif.)
+    await assertNotUsedInClaims({ productId: id })
 
     const [deletedProduct] = await db.update(products)
       .set({

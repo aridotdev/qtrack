@@ -4,15 +4,16 @@ import { admin } from 'better-auth/plugins'
 import { createAccessControl } from 'better-auth/plugins/access'
 import { db } from '../database' // drizzle instance
 import * as schema from '../database/schema'
-import { z } from 'zod'
+import { RoleSchema, type AppRole } from '#shared/roles'
 
 // ============================================================================
 // Role & Permission
 // ============================================================================
 
-/** Single source of truth untuk role aplikasi (PRD §1.3 + RBAC). */
-export const RoleSchema = z.enum(['admin', 'qrcc', 'pqa', 'management'])
-export type AppRole = z.infer<typeof RoleSchema>
+// `RoleSchema` dan `AppRole` di-re-export dari `shared/roles` agar client
+// dan server punya satu definisi yang sama.
+export { RoleSchema }
+export type { AppRole }
 
 /**
  * Definisi access control dengan statement (action × resource).

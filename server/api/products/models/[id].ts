@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '../../../database'
 import { productModels, products } from '../../../database/schema'
 import { requireAccess } from '../../../utils/rbac'
+import { assertNotUsedInClaims } from '../../../utils/master-guard'
 
 const modelSchema = z.object({
   sku: z.string().trim().min(1, 'SKU model wajib diisi').max(64, 'SKU model maksimal 64 karakter').transform(value => value.toUpperCase()),
@@ -160,6 +161,9 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'DELETE') {
     const user = await requireAccess(event, 'master', 'manage')
     await findModel(id)
+
+    // Task 3.3 — Cegah soft-delete jika model dipakai di claim manapun.
+    await assertNotUsedInClaims({ modelId: id })
 
     const [deletedModel] = await db.update(productModels)
       .set({

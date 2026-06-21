@@ -64,11 +64,11 @@ Memanfaatkan tabel `attachments` dengan metode Polymorphic:
 * [x] **Task 1.1:** Setup migrasi skema tabel `claims` dan `claim_status_logs` menggunakan Drizzle ORM.
 * [x] **Task 1.2:** Setup migrasi skema tabel baru `claim_progress_logs`.
 * [x] **Task 1.3:** Buat logika *Service* pembuat `claim_code` otomatis (`CLM-YYYY-NNN`).
-* [ ] **Task 1.4:** Buat API CRUD untuk `claims` (Implementasi validasi Zod schema).
-* [ ] **Task 1.5:** Implementasi Database Transaction saat Create Claim + Upload Attachment awal (termasuk **Issue Photos** dengan `entity_type = 'claim'`).
-* [ ] **Task 1.6:** Implementasi Database Transaction saat Update Status (memasukkan ke `claim_status_logs`).
-* [ ] **Task 1.7:** Buat API CRUD untuk `claim_progress_logs` (mendukung penerimaan string HTML).
-* [ ] **Task 1.8 [NEW]:** Buat API khusus untuk upload & delete **Issue Photos** pada claim yang sudah ada (endpoint: `POST /api/claims/:id/photos` & `DELETE /api/claims/:id/photos/:photoId`). Validasi mime-type (jpeg/png/webp) dan ukuran max 5MB.
+* [x] **Task 1.4:** Buat API CRUD untuk `claims` (Implementasi validasi Zod schema).
+* [x] **Task 1.5:** Implementasi Database Transaction saat Create Claim + Upload Attachment awal (termasuk **Issue Photos** dengan `entity_type = 'claim'`).
+* [x] **Task 1.6:** Implementasi Database Transaction saat Update Status (memasukkan ke `claim_status_logs`).
+* [x] **Task 1.7:** Buat API CRUD untuk `claim_progress_logs` (mendukung penerimaan string HTML).
+* [x] **Task 1.8 [NEW]:** Buat API khusus untuk upload & delete **Issue Photos** pada claim yang sudah ada (endpoint: `POST /api/claims/:id/photos` & `DELETE /api/claims/:id/photos/:photoId`). Validasi mime-type (jpeg/png/webp) dan ukuran max 5MB.
 
 ### Phase 2: Frontend Layout & Components (Estimasi: 2 Hari)
 
@@ -82,9 +82,9 @@ Memanfaatkan tabel `attachments` dengan metode Polymorphic:
 * [x] **Task 2.7 [NEW]:** Komponen reusable `PhotoLightbox.vue` (modal viewer dengan navigasi next/prev/close via keyboard & klik).
 
 ### Phase 3: Integration & Progress Attachment (Estimasi: 1 Hari)
-* [ ] **Task 3.1:** Implementasi logic upload gambar dari dalam Rich Text Editor agar masuk ke API `attachments` dengan entity `claim_progress`.
-* [ ] **Task 3.2:** Integrasi hak akses menggunakan Better Auth (Tombol Edit/Delete hanya muncul untuk Admin dan QRCC pemilik).
-* [ ] **Task 3.3:** Pastikan validasi bahwa master data (Product, Model, Defect) tidak bisa dihapus (*RESTRICT*) jika sedang dipakai di claim.
+* [x] **Task 3.1:** Implementasi logic upload gambar dari dalam Rich Text Editor agar masuk ke API `attachments` dengan entity `claim_progress`.
+* [x] **Task 3.2:** Integrasi hak akses menggunakan Better Auth (Tombol Edit/Delete hanya muncul untuk Admin dan QRCC pemilik).
+* [x] **Task 3.3:** Pastikan validasi bahwa master data (Product, Model, Defect) tidak bisa dihapus (*RESTRICT*) jika sedang dipakai di claim.
 
 ### Phase 4: Testing & UAT (Estimasi: 1 Hari)
 * [ ] **Task 4.1:** Integration Test API Create, Update Status, dan Delete Claim.

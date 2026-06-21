@@ -21,7 +21,6 @@
  */
 
 import { z } from 'zod'
-import { createAuthClient } from 'better-auth/vue'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { Claim, ClaimProgressLog, ClaimProgressLogCreatePayload, ClaimStatus, IssuePhoto } from '~/types'
 import { CLAIM_STATUS_COLOR, CLAIM_STATUS_LABEL } from '~/types'
@@ -36,8 +35,7 @@ definePageMeta({
 const route = useRoute()
 const toast = useToast()
 const router = useRouter()
-const authClient = createAuthClient()
-const session = authClient.useSession()
+const { user: currentUser } = useCurrentUser()
 
 const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
@@ -62,7 +60,6 @@ const claim = computed<Claim | null>(() => claimResponse.value?.data ?? null)
 const progressLogs = computed<ClaimProgressLog[]>(() => progressResponse.value?.data ?? [])
 const photos = computed<IssuePhoto[]>(() => photosResponse.value?.data ?? [])
 
-const currentUser = computed(() => session.value?.data?.user ?? null)
 const canManageClaim = computed(() => {
   if (!claim.value || !currentUser.value) return false
   if (currentUser.value.role === 'admin') return true

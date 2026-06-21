@@ -27,7 +27,10 @@ import {
  * - Setiap transisi otomatis tercatat di `claim_status_logs`.
  *
  * Task 1.6 — Implementasi Database Transaction saat Update Status.
- * Untuk libsql/drizzle SQLite, transaksi menggunakan `db.transaction`.
+ * `db.update(claims)` + `db.insert(claimStatusLogs)` dibungkus dalam
+ * satu `db.transaction` agar keduanya commit bersamaan atau rollback
+ * bersamaan. Tanpa transaction, jika proses crash di antara kedua
+ * statement, status akan berubah tanpa tercatat di log (atau sebaliknya).
  */
 
 const idParamSchema = z.object({
@@ -98,22 +101,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Update + log dalam satu transaction.
-  // Catatan: libsql drizzle mendukung `db.transaction((tx) => { ... })`.
-  // Di sini kita tidak menggunakan callback transaction karena Drizzle's
-  // libsql adapter juga melakukan batch insert atomically when sequential
-  // statements die on error. Untuk hardening production, bungkus dalam
-  // explicit transaction di service layer terpisah.
+  // Update + log dalam satu transaction agar atomic.
+  // Lihat header Task 1.6.
   const updatedAt = new Date()
-  await db.update(claims)
-    .set({ status: newStatus, updatedBy: user.id, updatedAt })
-    .where(eq(claims.id, id))
+  await db.transaction(async (tx) => {
+    await tx.update(claims)
+      .set({ status: newStatus, updatedBy: user.id, updatedAt })
+      .where(eq(claims.id, id))
 
-  await db.insert(claimStatusLogs).values({
-    claimId: id,
-    oldStatus,
-    newStatus,
-    changedBy: user.id
+    await tx.insert(claimStatusLogs).values({
+      claimId: id,
+      oldStatus,
+      newStatus,
+      changedBy: user.id
+    })
   })
 
   return {

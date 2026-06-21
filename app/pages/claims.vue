@@ -14,7 +14,6 @@
  * composable sudah siap dan akan otomatis aktif saat route handler tersedia.
  */
 import { getPaginationRowModel } from '@tanstack/table-core'
-import { createAuthClient } from 'better-auth/vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { Row } from '@tanstack/table-core'
 import type { Claim, ClaimStatus, ClaimStatusFilter } from '~/types'
@@ -39,8 +38,7 @@ const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UIcon = resolveComponent('UIcon')
 
 const table = useTemplateRef('table')
-const authClient = createAuthClient()
-const session = authClient.useSession()
+const { user: currentUser } = useCurrentUser()
 
 // ---------------------------------------------------------------------------
 // Filter state
@@ -69,8 +67,6 @@ const claims = computed<Claim[]>(() => {
   const payload = claimsResponse.value as (ClaimsListResponse | null | undefined)
   return payload?.data ?? []
 })
-
-const currentUser = computed(() => session.value?.data?.user ?? null)
 
 function canManageClaim(claim: Claim) {
   const user = currentUser.value
