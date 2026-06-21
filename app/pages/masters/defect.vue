@@ -323,6 +323,9 @@ const columns: TableColumn<Defect>[] = [{
     label: row.original.isActive ? 'Aktif' : 'Nonaktif'
   })
 }, {
+  accessorKey: 'description',
+  header: 'Deskripsi'
+}, {
   accessorKey: 'updatedAt',
   header: 'Terakhir Diubah',
   cell: ({ row }) => h('span', { class: 'text-muted' }, formatDate(row.original.updatedAt))
