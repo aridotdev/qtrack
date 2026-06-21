@@ -305,6 +305,7 @@ function onPhotoError(message: string) {
 <template>
   <UModal
     v-model:open="isOpen"
+    :dismissible="false"
     :title="isEdit ? 'Edit Claim' : 'Claim Baru'"
     :description="isEdit ? 'Perbarui data claim. Kode claim tidak berubah.' : 'Buat claim baru. Kode claim akan dibuat otomatis.'"
     :ui="{ footer: 'justify-end', content: 'sm:max-w-2xl' }"
@@ -325,6 +326,7 @@ function onPhotoError(message: string) {
               value-key="value"
               placeholder="Pilih produk"
               :disabled="productSelectItems.length === 0"
+              class="w-full"
             />
           </UFormField>
 
@@ -335,6 +337,7 @@ function onPhotoError(message: string) {
               value-key="value"
               :placeholder="formState.productId ? 'Pilih model' : 'Pilih produk dulu'"
               :disabled="!formState.productId || modelSelectItems.length === 0"
+              class="w-full"
             />
           </UFormField>
         </div>
@@ -346,6 +349,7 @@ function onPhotoError(message: string) {
             value-key="value"
             placeholder="Pilih defect"
             :disabled="defectSelectItems.length === 0"
+            class="w-full"
           />
         </UFormField>
 
@@ -354,6 +358,7 @@ function onPhotoError(message: string) {
             v-model="formState.source"
             placeholder="Contoh: Customer Complaint, Audit Internal, Field Report"
             autocomplete="off"
+            class="w-full"
           />
         </UFormField>
 
@@ -362,6 +367,7 @@ function onPhotoError(message: string) {
             v-model="formState.description"
             :rows="4"
             placeholder="Jelaskan masalah/defect yang ditemukan secara singkat..."
+            class="w-full"
           />
         </UFormField>
 
