@@ -24,45 +24,17 @@ export type AppRole = z.infer<typeof RoleSchema>
  */
 const statement = {
   // Aksi global aplikasi
-  app: {
-    manage: ['admin'], // full access
-    view: ['admin', 'qrcc', 'pqa', 'management']
-  },
+  app: ['manage', 'view'],
   // Master data (produk, model, defect category, defect, user)
-  master: {
-    manage: ['admin'],
-    view: ['admin', 'qrcc', 'pqa', 'management']
-  },
+  master: ['manage', 'view'],
   // Claims Log
-  claim: {
-    create: ['admin', 'qrcc'],
-    read: ['admin', 'qrcc', 'pqa', 'management'],
-    update: ['admin', 'qrcc'],
-    delete: ['admin'],
-    export: ['admin', 'qrcc', 'management']
-  },
+  claim: ['create', 'read', 'update', 'delete', 'export'],
   // Sample Log
-  sample: {
-    create: ['admin', 'qrcc'],
-    read: ['admin', 'qrcc', 'pqa', 'management'],
-    update: ['admin', 'qrcc', 'pqa'],
-    delete: ['admin']
-  },
+  sample: ['create', 'read', 'update', 'delete'],
   // PQA Summary
-  pqa: {
-    create: ['admin', 'pqa'],
-    read: ['admin', 'qrcc', 'pqa', 'management'],
-    update: ['admin', 'pqa'],
-    delete: ['admin']
-  },
+  pqa: ['create', 'read', 'update', 'delete'],
   // Laporan bulanan
-  report: {
-    create: ['admin', 'qrcc'],
-    read: ['admin', 'qrcc', 'management'],
-    update: ['admin', 'qrcc'],
-    delete: ['admin'],
-    export: ['admin', 'qrcc', 'management']
-  }
+  report: ['create', 'read', 'update', 'delete', 'export']
 } as const
 
 export const ac = createAccessControl(statement)

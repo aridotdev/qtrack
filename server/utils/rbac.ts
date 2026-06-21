@@ -1,5 +1,6 @@
 // server/utils/rbac.ts
 import type { H3Event } from 'h3'
+import { createError } from 'h3'
 import { auth, ac, roles, type AppRole } from './auth'
 
 /**
@@ -76,9 +77,9 @@ export const requireAccess = async (
   // Resolve role → permissions. Fallback ke role 'qrcc' (default) jika
   // role user tidak dikenal (mis. role dari versi schema lama).
   const roleDef = roles[userRole] ?? roles.qrcc
-  const allowed = roleDef.statements?.[resource] ?? []
+  const allowed = (roleDef.statements?.[resource] ?? []) as readonly AccessAction[]
 
-  if (!allowed.includes(action)) {
+  if (!allowed.includes(action) && !allowed.includes('manage')) {
     throw createError({
       statusCode: 403,
       statusMessage: `Forbidden: role ${userRole} tidak punya akses ${action} pada ${resource}`
@@ -99,8 +100,8 @@ export const hasAccess = (
 ): boolean => {
   if (!user?.role) return false
   const roleDef = roles[user.role as AppRole] ?? roles.qrcc
-  const allowed = roleDef.statements?.[resource] ?? []
-  return allowed.includes(action)
+  const allowed = (roleDef.statements?.[resource] ?? []) as readonly AccessAction[]
+  return allowed.includes(action) || allowed.includes('manage')
 }
 
 // Re-export untuk memudahkan import dari handler:
