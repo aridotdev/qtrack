@@ -2,6 +2,9 @@
   "name": "qtrack",
   "private": true,
   "type": "module",
+  "imports": {
+    "#shared/*": "./shared/*"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

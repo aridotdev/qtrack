@@ -92,6 +92,10 @@ function addFiles(files: FileList | File[]) {
       skipped++
       continue
     }
+    if (file.size === 0) {
+      emitError(`File ${file.name} kosong (0 byte) dan tidak dapat diunggah.`)
+      continue
+    }
     if (!ACCEPTED_MIME_TYPES.includes(file.type as typeof ACCEPTED_MIME_TYPES[number])) {
       emitError(`Format ${file.name} tidak didukung. Gunakan JPEG, PNG, atau WebP.`)
       continue

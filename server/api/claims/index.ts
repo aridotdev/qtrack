@@ -1,4 +1,4 @@
-import { desc, eq, sql, and, or } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import {
   createError,
   defineEventHandler,
@@ -159,7 +159,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      data: filtered.map((row) => serializeClaim({
+      data: filtered.map(row => serializeClaim({
         ...row,
         updatedByName: null, // join kedua user untuk updatedBy belum diimpl
         photoCount: Number(row.photoCount ?? 0),
@@ -175,7 +175,7 @@ export default defineEventHandler(async (event) => {
     const user = await requireAccess(event, 'claim', 'create')
 
     const contentType = (event.node.req.headers['content-type'] ?? '').toString()
-    let body: Record<string, unknown> = {}
+    let body: Record<string, unknown>
     const photoFiles: Array<{ name: string, type: string, size: number, data: Buffer }> = []
 
     if (contentType.includes('multipart/form-data')) {
@@ -319,15 +319,26 @@ export default defineEventHandler(async (event) => {
       // Compensating cleanup: hapus file fisik yang sudah ditulis
       // (DB sudah otomatis rollback oleh transaction).
       for (const f of savedFiles) {
-        try { await deleteFile(f.relativePath) }
-        catch (e) { console.error('[claims.POST] cleanup file failed:', e) }
+        try {
+          await deleteFile(f.relativePath)
+        } catch (e) {
+          console.error('[claims.POST] cleanup file failed:', e)
+        }
       }
 
       if (error instanceof StorageError) {
         throw createError({ statusCode: 400, statusMessage: 'Upload failed', message: error.message })
       }
+      // Sertakan pesan error asli di log server agar bisa di-root-cause,
+      // tapi JANGAN bocorkan detail internal ke klien.
+      const detail = error instanceof Error ? error.message : String(error)
       console.error('[claims.POST] failed:', error)
-      throw createError({ statusCode: 500, statusMessage: 'Claim save failed', message: 'Gagal membuat claim. Coba lagi.' })
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Claim save failed',
+        message: `Gagal membuat claim. Coba lagi.`,
+        data: { detail }
+      })
     }
 
     // Fetch ulang untuk response dengan relasi

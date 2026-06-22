@@ -32,9 +32,8 @@
 import 'dotenv/config'
 import { eq } from 'drizzle-orm'
 import { db } from './index'
-import { auth } from '../utils/auth'
+import { auth, RoleSchema } from '../utils/auth'
 import { user } from './schema'
-import { RoleSchema } from '../utils/auth'
 
 async function main() {
   const name = process.env.ADMIN_NAME?.trim() || 'QC Tracker Admin'
@@ -109,8 +108,8 @@ async function main() {
 
   if (updated.length === 0) {
     throw new Error(
-      `Gagal membuat user admin untuk ${email}. ` +
-      'Periksa log Better Auth di atas untuk detail.'
+      `Gagal membuat user admin untuk ${email}. `
+      + 'Periksa log Better Auth di atas untuk detail.'
     )
   }
 

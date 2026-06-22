@@ -126,12 +126,12 @@ function statusColor(status: ClaimStatus) {
 function getRowItems(row: Row<Claim>) {
   const claim = row.original
   const firstGroup = [{
-      label: 'Lihat Detail',
-      icon: 'i-lucide-eye',
-      onSelect: () => {
-        navigateTo(`/claims/${claim.id}`)
-      }
-    }]
+    label: 'Lihat Detail',
+    icon: 'i-lucide-eye',
+    onSelect: () => {
+      navigateTo(`/claims/${claim.id}`)
+    }
+  }]
   const groups = [firstGroup]
 
   if (canManageClaim(claim)) {
