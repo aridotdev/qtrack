@@ -156,21 +156,21 @@ const filteredModels = computed(() =>
 
 const productSelectItems = computed(() =>
   activeProducts.value.map(p => ({
-    label: `${p.code} — ${p.name}`,
+    label: `${p.name}`,
     value: p.id
   }))
 )
 
 const modelSelectItems = computed(() =>
   filteredModels.value.map(m => ({
-    label: `${m.sku} — ${m.name}`,
+    label: `${m.name}`,
     value: m.id
   }))
 )
 
 const defectSelectItems = computed(() =>
   activeDefects.value.map(d => ({
-    label: d.categoryName ? `${d.code} — ${d.name} (${d.categoryName})` : `${d.code} — ${d.name}`,
+    label: d.categoryName ? `${d.name} (${d.categoryName})` : `${d.code} — ${d.name}`,
     value: d.id
   }))
 )
@@ -329,7 +329,7 @@ function onPhotoError(message: string) {
       >
         <div class="grid gap-4 sm:grid-cols-2">
           <UFormField name="productId" label="Produk" required>
-            <USelect
+            <UInputMenu
               v-model="formState.productId"
               :items="productSelectItems"
               value-key="value"
@@ -340,7 +340,7 @@ function onPhotoError(message: string) {
           </UFormField>
 
           <UFormField name="modelId" label="Model" required>
-            <USelect
+            <UInputMenu
               v-model="formState.modelId"
               :items="modelSelectItems"
               value-key="value"
@@ -352,7 +352,7 @@ function onPhotoError(message: string) {
         </div>
 
         <UFormField name="defectId" label="Defect" required>
-          <USelect
+          <UInputMenu
             v-model="formState.defectId"
             :items="defectSelectItems"
             value-key="value"
