@@ -338,7 +338,7 @@ const sortedProgressLogs = computed(() =>
 </script>
 
 <template>
-  <div>
+  <div class="mx-auto w-full max-w-7xl">
     <div v-if="claimId === null" class="py-12 text-center text-sm text-muted">
       ID claim tidak valid. Kembali ke
       <NuxtLink to="/claims" class="text-primary underline">daftar claim</NuxtLink>.
@@ -348,191 +348,307 @@ const sortedProgressLogs = computed(() =>
       Claim tidak ditemukan.
     </div>
 
-    <div v-else class="flex flex-col gap-6">
-      <!-- Header ringkas -->
-      <section
-        v-if="claim"
-        class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <h2 class="font-mono text-lg font-semibold text-highlighted">
+    <div v-else>
+      <!-- Page title -->
+      <div class="mb-6 flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-highlighted">
+          Detail Claim
+        </h1>
+      </div>
+
+      <!--
+        Layout 2 kolom: Area utama (kiri) 2/3 + Sidebar sticky (kanan) 1/3.
+        `lg:items-start` KRUSIAL: tanpa ini, default `align-items: stretch`
+        dari flex membuat kolom kanan di-stretch setinggi kolom kiri,
+        sehingga `position: sticky` tidak punya ruang untuk "menempel"
+        karena tinggi child = tinggi container. Dengan `lg:items-start`,
+        kolom kanan tetap setinggi kontennya sendiri, dan sticky
+        bekerja normal saat user scroll.
+        Pola persis mengikuti doc/slicing_ui_detail_claim.html.
+      -->
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <!-- =====================================================
+             AREA UTAMA (Kiri & Tengah)
+             ===================================================== -->
+        <div class="w-full space-y-6 lg:w-2/3">
+          <!-- Kartu utama / Dokumen Claim -->
+          <UCard
+            v-if="claim"
+            class="overflow-hidden"
+            :ui="{ body: 'p-0 sm:p-0', header: 'p-0', footer: 'p-0' }"
+          >
+            <!-- Dokumen Header (status + identitas claim) -->
+            <div class="border-b border-default p-6 md:p-8">
+              <div class="mb-2 flex items-center gap-3">
+                <UBadge
+                  :color="CLAIM_STATUS_COLOR[claim.status]"
+                  variant="subtle"
+                  :label="CLAIM_STATUS_LABEL[claim.status]"
+                />
+                <span class="text-sm text-muted">
+                  Dibuat {{ formatDate(claim.createdAt) }}
+                  oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
+                </span>
+              </div>
+
+              <h2 class="mb-6 font-mono text-3xl font-bold text-highlighted">
                 {{ claim.claimCode }}
               </h2>
-              <UBadge
-                :color="CLAIM_STATUS_COLOR[claim.status]"
-                variant="subtle"
-                :label="CLAIM_STATUS_LABEL[claim.status]"
+
+              <div class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm md:grid-cols-4">
+                <div>
+                  <p class="mb-0.5 text-muted">
+                    Produk
+                  </p>
+                  <p class="font-semibold text-highlighted">
+                    {{ claim.productName ?? '-' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="mb-0.5 text-muted">
+                    Model
+                  </p>
+                  <p class="font-semibold text-highlighted">
+                    {{ claim.modelName ?? '-' }}
+                  </p>
+                  <p v-if="claim.modelSku" class="font-mono text-xs text-muted">
+                    {{ claim.modelSku }}
+                  </p>
+                </div>
+                <div>
+                  <p class="mb-0.5 text-muted">
+                    Defect
+                  </p>
+                  <p class="font-semibold text-highlighted">
+                    {{ claim.defectName ?? '-' }}
+                  </p>
+                  <p v-if="claim.defectCode" class="font-mono text-xs text-muted">
+                    {{ claim.defectCode }}
+                  </p>
+                </div>
+                <div>
+                  <p class="mb-0.5 text-muted">
+                    Sumber
+                  </p>
+                  <p class="font-semibold text-highlighted">
+                    {{ claim.source }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dokumen Body (deskripsi + IssuePhotosSection) -->
+            <div class="bg-elevated/30 p-6 md:p-8">
+              <h4 class="mb-3 text-sm font-bold uppercase tracking-wide text-highlighted">
+                Deskripsi Kendala
+              </h4>
+              <p class="mb-8 whitespace-pre-line text-sm leading-relaxed text-highlighted">
+                {{ claim.description }}
+              </p>
+
+              <!-- Issue Photos (Task 2.6) — judul & tombol upload-nya sudah built-in -->
+              <IssuePhotosSection
+                :claim-id="claimId"
+                :photos="photos"
+                :can-manage="canManageClaim"
+                :photos-api-available="photosApiAvailable"
+                @updated="onPhotosUpdated"
               />
             </div>
-            <p class="text-sm text-muted">
-              Dibuat {{ formatDate(claim.createdAt) }}
-              oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
-            </p>
-          </div>
+          </UCard>
 
-          <!-- Status transition control (Task 1.6) -->
-          <div v-if="canManageClaim && allowedNext.length > 0" class="flex items-center gap-2">
-            <USelect
-              v-model="nextStatus"
-              :items="statusSelectItems"
-              value-key="value"
-              placeholder="Ubah status..."
-              class="min-w-44"
-              :disabled="isStatusUpdating"
-            />
-            <UButton
-              icon="i-lucide-check"
-              label="Terapkan"
-              size="sm"
-              :loading="isStatusUpdating"
-              :disabled="!nextStatus"
-              @click="changeStatus"
-            />
-          </div>
-        </div>
-
-        <div class="mt-4 grid gap-4 sm:grid-cols-3">
-          <div>
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Produk
-            </p>
-            <p class="text-sm font-medium text-highlighted">
-              {{ claim.productName ?? '-' }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Model
-            </p>
-            <p class="text-sm font-medium text-highlighted">
-              {{ claim.modelName ?? '-' }}
-            </p>
-            <p v-if="claim.modelSku" class="font-mono text-xs text-muted">
-              {{ claim.modelSku }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Defect
-            </p>
-            <p class="text-sm font-medium text-highlighted">
-              {{ claim.defectName ?? '-' }}
-            </p>
-            <p v-if="claim.defectCode" class="font-mono text-xs text-muted">
-              {{ claim.defectCode }}
-            </p>
-          </div>
-          <div class="sm:col-span-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Sumber
-            </p>
-            <p class="text-sm text-highlighted">
-              {{ claim.source }}
-            </p>
-          </div>
-          <div class="sm:col-span-3">
-            <p class="text-xs uppercase tracking-wide text-muted">
-              Deskripsi
-            </p>
-            <p class="whitespace-pre-line text-sm text-highlighted">
-              {{ claim.description }}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Issue Photos (Task 2.6) -->
-      <IssuePhotosSection
-        :claim-id="claimId"
-        :photos="photos"
-        :can-manage="canManageClaim"
-        :photos-api-available="photosApiAvailable"
-        @updated="onPhotosUpdated"
-      />
-
-      <!-- Status Timeline placeholder (riwayat transisi) -->
-      <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
-        <header class="mb-3 flex items-center justify-between">
-          <div>
-            <h3 class="text-base font-semibold text-highlighted">
-              Status Timeline
-            </h3>
-            <p class="text-xs text-muted">
-              Riwayat transisi status klaim.
-            </p>
-          </div>
-          <UIcon name="i-lucide-clock" class="size-4 text-muted" />
-        </header>
-        <div class="rounded-md border border-dashed border-default p-4 text-center text-sm text-muted">
-          <UIcon name="i-lucide-info" class="mx-auto mb-1 size-5" />
-          <p>Visualisasi timeline transisi status akan ditampilkan di Task UI berikutnya.</p>
-          <p class="mt-1 text-xs">
-            Data log sudah tercatat otomatis di backend saat status berubah.
-          </p>
-        </div>
-      </section>
-
-      <!-- Progress Journal -->
-      <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
-        <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-base font-semibold text-highlighted">
-              Progress Journal
-            </h3>
-            <p class="text-xs text-muted">
-              Catatan progres kronologis (diurut naik berdasarkan tanggal kegiatan).
-            </p>
-          </div>
-          <UButton
-            v-if="claim && canManageClaim"
-            icon="i-lucide-plus"
-            label="Tambah Jurnal"
-            size="sm"
-            @click="openProgressForm"
-          />
-        </header>
-
-        <div v-if="sortedProgressLogs.length === 0" class="rounded-md border border-dashed border-default p-6 text-center text-sm text-muted">
-          <UIcon name="i-lucide-notebook-pen" class="mx-auto mb-2 size-6" />
-          <p>Belum ada jurnal progres untuk claim ini.</p>
-          <p class="mt-1 text-xs">
-            Klik "Tambah Jurnal" untuk mulai mencatat progres.
-          </p>
-        </div>
-
-        <ol v-else class="relative space-y-4 border-l border-default pl-5">
-          <li
-            v-for="log in sortedProgressLogs"
-            :key="log.id"
-            class="relative"
+          <!-- Progress Journal -->
+          <UCard
+            :ui="{ body: 'p-0 sm:p-0', header: 'p-0', footer: 'p-0' }"
           >
-            <span class="absolute -left-7 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-elevated/30">
-              <UIcon name="i-lucide-dot" class="size-3" />
-            </span>
-            <article class="rounded-md border border-default bg-default p-4">
-              <header class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div class="text-sm font-medium text-highlighted">
-                  {{ formatDateOnly(log.progressDate) }}
-                </div>
-                <div class="text-xs text-muted">
-                  {{ log.createdByName ?? log.createdBy }} • {{ formatDate(log.createdAt) }}
-                </div>
-              </header>
-              <!--
-                  Output WYSIWYG dirender di sini. Catatan: untuk hardening,
-                  backend harus sanitize HTML sebelum disimpan (lihat Task 1.7
-                  notes). Saat MVP, klien mempercayai output editor.
-                -->
-              <div
-                class="prose prose-sm max-w-none text-highlighted dark:prose-invert prose-headings:text-highlighted prose-a:text-primary prose-img:rounded-md"
-                v-html="log.notes"
+            <div class="flex items-center justify-between border-b border-default px-5 py-4">
+              <div>
+                <h3 class="text-base font-semibold text-highlighted">
+                  Progress Journal
+                </h3>
+                <p class="text-xs text-muted">
+                  Catatan progres kronologis (diurut naik berdasarkan tanggal kegiatan).
+                </p>
+              </div>
+              <UButton
+                v-if="claim && canManageClaim"
+                icon="i-lucide-plus"
+                label="Tambah Jurnal"
+                size="sm"
+                variant="outline"
+                @click="openProgressForm"
               />
-            </article>
-          </li>
-        </ol>
-      </section>
+            </div>
+
+            <div class="p-5">
+              <div
+                v-if="sortedProgressLogs.length === 0"
+                class="rounded-md border border-dashed border-default p-6 text-center text-sm text-muted"
+              >
+                <UIcon name="i-lucide-notebook-pen" class="mx-auto mb-2 size-6" />
+                <p>Belum ada jurnal progres untuk claim ini.</p>
+                <p v-if="canManageClaim" class="mt-1 text-xs">
+                  Klik "Tambah Jurnal" untuk mulai mencatat progres.
+                </p>
+              </div>
+
+              <ol v-else class="relative ml-3 space-y-6 border-l-2 border-default pl-6">
+                <li
+                  v-for="log in sortedProgressLogs"
+                  :key="log.id"
+                  class="relative"
+                >
+                  <span class="absolute -left-6.75 top-1 flex size-4 items-center justify-center rounded-full bg-elevated ring-4 ring-default">
+                    <span class="size-2 rounded-full bg-primary" />
+                  </span>
+                  <article class="rounded-lg border border-default bg-elevated/40 p-4">
+                    <header class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div class="text-sm font-medium text-highlighted">
+                        {{ formatDateOnly(log.progressDate) }}
+                      </div>
+                      <div class="flex items-center gap-1 text-xs text-muted">
+                        <UIcon name="i-lucide-user" class="size-3.5" />
+                        <span>{{ log.createdByName ?? log.createdBy }}</span>
+                        <span>•</span>
+                        <span>{{ formatDate(log.createdAt) }}</span>
+                      </div>
+                    </header>
+                    <!--
+                      Output WYSIWYG dirender di sini. Catatan: untuk hardening,
+                      backend harus sanitize HTML sebelum disimpan (lihat Task 1.7
+                      notes). Saat MVP, klien mempercayai output editor.
+                    -->
+                    <div
+                      class="prose prose-sm max-w-none text-highlighted dark:prose-invert prose-headings:text-highlighted prose-a:text-primary prose-img:rounded-md"
+                      v-html="log.notes"
+                    />
+                  </article>
+                </li>
+              </ol>
+            </div>
+          </UCard>
+        </div>
+
+        <!-- =====================================================
+             AREA KANAN (Sidebar: Aksi Status & Timeline)
+             Struktur flat sesuai pola slicing_ui_detail_claim.html:
+             sticky + width pada satu elemen, tanpa wrapper tambahan.
+             ===================================================== -->
+        <div class="w-full space-y-6 lg:sticky lg:top-0 lg:w-1/3">
+          <!-- Kartu Aksi Status (selalu tampil jika boleh manage; jika tidak,
+               tampilkan versi read-only yang menampilkan status saat ini) -->
+          <div
+            class="rounded-xl border border-inverted bg-inverted p-5 text-inverted shadow-lg"
+          >
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-dimmed">
+              Perbarui Status
+            </h3>
+
+            <template v-if="canManageClaim && allowedNext.length > 0">
+              <div class="space-y-3">
+                <USelect
+                  v-model="nextStatus"
+                  :items="statusSelectItems"
+                  value-key="value"
+                  placeholder="Pilih Status Selanjutnya..."
+                  class="w-full"
+                  :ui="{ base: 'bg-elevated text-highlighted' }"
+                  :disabled="isStatusUpdating"
+                />
+                <UButton
+                  block
+                  icon="i-lucide-check"
+                  label="Terapkan Status"
+                  color="neutral"
+                  variant="solid"
+                  :loading="isStatusUpdating"
+                  :disabled="!nextStatus"
+                  @click="changeStatus"
+                />
+              </div>
+            </template>
+
+            <template v-else-if="claim">
+              <div class="space-y-2">
+                <p class="text-xs text-dimmed">
+                  Status saat ini
+                </p>
+                <UBadge
+                  :color="CLAIM_STATUS_COLOR[claim.status]"
+                  variant="solid"
+                  :label="CLAIM_STATUS_LABEL[claim.status]"
+                  size="md"
+                />
+                <p v-if="allowedNext.length === 0" class="text-xs text-dimmed">
+                  Tidak ada transisi status berikutnya yang tersedia.
+                </p>
+                <p v-else class="text-xs text-dimmed">
+                  Anda tidak memiliki akses untuk mengubah status claim ini.
+                </p>
+              </div>
+            </template>
+          </div>
+
+          <!-- Kartu Timeline Vertikal (placeholder mengikuti pola slicing) -->
+          <UCard>
+            <h3 class="mb-5 text-base font-bold text-highlighted">
+              Timeline Perjalanan
+            </h3>
+            <div class="relative ml-3 space-y-6 border-l-2 border-default pl-6">
+              <!-- Titik status saat ini -->
+              <div v-if="claim" class="relative">
+                <span class="absolute -left-6.75 top-0 flex size-5 items-center justify-center rounded-full bg-default ring-2 ring-default">
+                  <span
+                    class="size-1.5 rounded-full"
+                    :class="`bg-${CLAIM_STATUS_COLOR[claim.status]}-500`"
+                  />
+                </span>
+                <div class="-mt-1">
+                  <p
+                    class="text-sm font-bold"
+                    :class="`text-${CLAIM_STATUS_COLOR[claim.status]}-600 dark:text-${CLAIM_STATUS_COLOR[claim.status]}-400`"
+                  >
+                    {{ CLAIM_STATUS_LABEL[claim.status] }}
+                  </p>
+                  <p class="mt-0.5 text-xs text-muted">
+                    Sedang berlangsung
+                  </p>
+                </div>
+              </div>
+
+              <!-- Created entry -->
+              <div v-if="claim" class="relative">
+                <span class="absolute -left-6.75 top-0 flex size-5 items-center justify-center rounded-full border-2 border-default bg-default">
+                  <UIcon name="i-lucide-check" class="size-3 text-muted" />
+                </span>
+                <div class="-mt-1">
+                  <p class="text-sm font-medium text-highlighted">
+                    Claim Dibuat
+                  </p>
+                  <p class="mt-0.5 text-xs text-muted">
+                    {{ formatDate(claim.createdAt) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Catatan transisi log otomatis (placeholder) -->
+              <div class="relative">
+                <span class="absolute -left-6.75 top-0 flex size-5 items-center justify-center rounded-full border-2 border-dashed border-default bg-default">
+                  <UIcon name="i-lucide-info" class="size-3 text-dimmed" />
+                </span>
+                <div class="-mt-1">
+                  <p class="text-sm font-medium text-muted">
+                    Riwayat transisi
+                  </p>
+                  <p class="mt-0.5 text-xs text-dimmed">
+                    Visualisasi lengkap akan ditampilkan di Task UI berikutnya.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </UCard>
+        </div>
+      </div>
     </div>
   </div>
 
