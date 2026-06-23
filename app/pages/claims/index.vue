@@ -215,17 +215,8 @@ const columns: TableColumn<Claim>[] = [
 </script>
 
 <template>
-  <UDashboardPanel id="claims">
-    <template #header>
-      <UDashboardNavbar title="Claims">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-      </UDashboardNavbar>
-    </template>
-
-    <template #body>
-      <div class="flex flex-col gap-4">
+  <div>
+    <div class="flex flex-col gap-4">
       <!-- Filter bar -->
       <div class="flex flex-wrap items-center justify-between gap-3">
         <UInput
@@ -297,13 +288,12 @@ const columns: TableColumn<Claim>[] = [
           @update:page="(page: number) => table?.tableApi?.setPageIndex(page - 1)"
         />
       </div>
-      </div>
+    </div>
 
-      <ClaimFormModal
-        v-model="isFormOpen"
-        :claim="editingClaim"
-        @saved="onClaimSaved"
-      />
-    </template>
-  </UDashboardPanel>
+    <ClaimFormModal
+      v-model="isFormOpen"
+      :claim="editingClaim"
+      @saved="onClaimSaved"
+    />
+  </div>
 </template>
