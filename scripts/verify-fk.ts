@@ -16,7 +16,7 @@ async function main() {
   console.log('\nPRAGMA foreign_keys:', fk.rows)
 
   // 3. Cek FK definition di products.createdBy
-  const fkDef = await c.execute({ sql: "PRAGMA foreign_key_list(products)", args: [] })
+  const fkDef = await c.execute({ sql: 'PRAGMA foreign_key_list(products)', args: [] })
   console.log('\nFK on products:')
   console.log(JSON.stringify(fkDef.rows, null, 2))
 

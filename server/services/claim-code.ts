@@ -105,8 +105,8 @@ export async function generateUniqueClaimCode(
   }
 
   throw new Error(
-    `Gagal generate unique claim code setelah ${maxAttempts} percobaan: ` +
-    (lastError instanceof Error ? lastError.message : String(lastError))
+    `Gagal generate unique claim code setelah ${maxAttempts} percobaan: `
+    + (lastError instanceof Error ? lastError.message : String(lastError))
   )
 }
 

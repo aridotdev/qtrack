@@ -70,17 +70,17 @@ function getClaimId(event: Parameters<Parameters<typeof defineEventHandler>[0]>[
  */
 async function fetchClaimById(id: number) {
   const photoCountSq = db
-    .select({ claimId: attachments.entityId, count: sql<number>`COUNT(*)`.as('c') })
+    .select({ claimId: attachments.entityId, count: sql<number>`COUNT(*)`.as('photo_count') })
     .from(attachments)
     .where(eq(attachments.entityType, 'claim'))
     .groupBy(attachments.entityId)
-    .as('pc')
+    .as('photo_count_sq')
 
   const progressCountSq = db
-    .select({ claimId: claimProgressLogs.claimId, count: sql<number>`COUNT(*)`.as('c') })
+    .select({ claimId: claimProgressLogs.claimId, count: sql<number>`COUNT(*)`.as('progress_count') })
     .from(claimProgressLogs)
     .groupBy(claimProgressLogs.claimId)
-    .as('plc')
+    .as('progress_count_sq')
 
   const [row] = await db
     .select({

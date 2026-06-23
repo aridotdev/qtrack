@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      data: rows.map((row) => serializeIssuePhoto({
+      data: rows.map(row => serializeIssuePhoto({
         ...row,
         uploadedByName: row.uploadedByName ?? null
       }))
@@ -182,13 +182,11 @@ export default defineEventHandler(async (event) => {
     } catch (error) {
       // Cleanup: hapus file yang sudah terlanjur ditulis
       for (const f of saved) {
-        try { await deleteFile(f.relativePath) }
-        catch (e) { console.error('[photos.POST] cleanup file failed:', e) }
+        try { await deleteFile(f.relativePath) } catch (e) { console.error('[photos.POST] cleanup file failed:', e) }
       }
       // Hapus attachment rows yang sudah ter-insert (best-effort)
       for (const id of insertedIds) {
-        try { await db.delete(attachments).where(eq(attachments.id, id)) }
-        catch (e) { console.error('[photos.POST] cleanup row failed:', e) }
+        try { await db.delete(attachments).where(eq(attachments.id, id)) } catch (e) { console.error('[photos.POST] cleanup row failed:', e) }
       }
 
       if (error instanceof StorageError) {
@@ -221,7 +219,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      data: rows.map((row) => serializeIssuePhoto({
+      data: rows.map(row => serializeIssuePhoto({
         ...row,
         uploadedByName: row.uploadedByName ?? null
       }))

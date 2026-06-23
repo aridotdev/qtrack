@@ -159,7 +159,7 @@ export async function deleteAllForEntity(
 function normalizeRelativePath(relativePath: string): string | null {
   if (typeof relativePath !== 'string' || relativePath.length === 0) return null
   // Strip leading slash
-  let p = relativePath.replace(/^[/\\]+/, '')
+  const p = relativePath.replace(/^[/\\]+/, '')
   // Larang traversal absolut
   if (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p)) return null
   // Larang `..` segments

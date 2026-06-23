@@ -380,7 +380,7 @@ function onPhotoError(message: string) {
           />
         </UFormField>
 
-        <UDivider v-if="!isEdit" label="Issue Photos" />
+        <USeparator v-if="!isEdit" label="Issue Photos" />
 
         <IssuePhotoUploader
           v-if="!isEdit"

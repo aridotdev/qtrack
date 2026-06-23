@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      data: rows.map((row) => serializeProgressLog({
+      data: rows.map(row => serializeProgressLog({
         ...row,
         createdByName: row.createdByName ?? null
       }))

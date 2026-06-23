@@ -53,7 +53,7 @@ const dragOver = ref(false)
 
 const photos = computed<IssuePhotoDraft[]>({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: value => emit('update:modelValue', value)
 })
 
 const remainingSlots = computed(() => props.maxFiles - photos.value.length)

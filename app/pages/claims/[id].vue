@@ -114,7 +114,7 @@ const progressSchema = z.object({
   progressDate: z
     .string()
     .min(1, 'Tanggal progres wajib diisi')
-    .refine((v) => !Number.isNaN(new Date(v).getTime()), {
+    .refine(v => !Number.isNaN(new Date(v).getTime()), {
       message: 'Tanggal progres tidak valid'
     }),
   notes: z
@@ -268,7 +268,7 @@ const allowedNext = computed<readonly ClaimStatus[]>(() => {
   return allowedNextStatuses(s as ClaimStatus)
 })
 
-const statusSelectItems = computed(() => allowedNext.value.map((s) => ({
+const statusSelectItems = computed(() => allowedNext.value.map(s => ({
   label: CLAIM_STATUS_LABEL[s],
   value: s
 })))
@@ -301,10 +301,6 @@ async function changeStatus() {
 // ---------------------------------------------------------------------------
 // Refresh helpers
 // ---------------------------------------------------------------------------
-
-async function refreshAll() {
-  await Promise.all([refreshClaim(), refreshProgress(), refreshPhotos()])
-}
 
 async function onPhotosUpdated() {
   await Promise.all([refreshPhotos(), refreshClaim()])
@@ -342,245 +338,253 @@ const sortedProgressLogs = computed(() =>
 </script>
 
 <template>
-  <UDashboardPanel id="claim-detail">
-    <template #header>
-      <UDashboardNavbar :title="claim?.claimCode ?? 'Detail Claim'">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+  <div>
+    <div v-if="claimId === null" class="py-12 text-center text-sm text-muted">
+      ID claim tidak valid. Kembali ke
+      <NuxtLink to="/claims" class="text-primary underline">daftar claim</NuxtLink>.
+    </div>
 
-        <template #right>
-          <UButton
-            icon="i-lucide-arrow-left"
-            color="neutral"
-            variant="ghost"
-            label="Kembali"
-            @click="goBack"
-          />
+    <div v-else-if="!isLoading && !claim" class="py-12 text-center text-sm text-muted">
+      Claim tidak ditemukan.
+    </div>
+
+    <div v-else class="flex flex-col gap-6">
+      <!-- Header ringkas -->
+      <section
+        v-if="claim"
+        class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <h2 class="font-mono text-lg font-semibold text-highlighted">
+                {{ claim.claimCode }}
+              </h2>
+              <UBadge
+                :color="CLAIM_STATUS_COLOR[claim.status]"
+                variant="subtle"
+                :label="CLAIM_STATUS_LABEL[claim.status]"
+              />
+            </div>
+            <p class="text-sm text-muted">
+              Dibuat {{ formatDate(claim.createdAt) }}
+              oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
+            </p>
+          </div>
+
+          <!-- Status transition control (Task 1.6) -->
+          <div v-if="canManageClaim && allowedNext.length > 0" class="flex items-center gap-2">
+            <USelect
+              v-model="nextStatus"
+              :items="statusSelectItems"
+              value-key="value"
+              placeholder="Ubah status..."
+              class="min-w-44"
+              :disabled="isStatusUpdating"
+            />
+            <UButton
+              icon="i-lucide-check"
+              label="Terapkan"
+              size="sm"
+              :loading="isStatusUpdating"
+              :disabled="!nextStatus"
+              @click="changeStatus"
+            />
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Produk
+            </p>
+            <p class="text-sm font-medium text-highlighted">
+              {{ claim.productName ?? '-' }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Model
+            </p>
+            <p class="text-sm font-medium text-highlighted">
+              {{ claim.modelName ?? '-' }}
+            </p>
+            <p v-if="claim.modelSku" class="font-mono text-xs text-muted">
+              {{ claim.modelSku }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Defect
+            </p>
+            <p class="text-sm font-medium text-highlighted">
+              {{ claim.defectName ?? '-' }}
+            </p>
+            <p v-if="claim.defectCode" class="font-mono text-xs text-muted">
+              {{ claim.defectCode }}
+            </p>
+          </div>
+          <div class="sm:col-span-3">
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Sumber
+            </p>
+            <p class="text-sm text-highlighted">
+              {{ claim.source }}
+            </p>
+          </div>
+          <div class="sm:col-span-3">
+            <p class="text-xs uppercase tracking-wide text-muted">
+              Deskripsi
+            </p>
+            <p class="whitespace-pre-line text-sm text-highlighted">
+              {{ claim.description }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Issue Photos (Task 2.6) -->
+      <IssuePhotosSection
+        :claim-id="claimId"
+        :photos="photos"
+        :can-manage="canManageClaim"
+        :photos-api-available="photosApiAvailable"
+        @updated="onPhotosUpdated"
+      />
+
+      <!-- Status Timeline placeholder (riwayat transisi) -->
+      <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
+        <header class="mb-3 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-semibold text-highlighted">
+              Status Timeline
+            </h3>
+            <p class="text-xs text-muted">
+              Riwayat transisi status klaim.
+            </p>
+          </div>
+          <UIcon name="i-lucide-clock" class="size-4 text-muted" />
+        </header>
+        <div class="rounded-md border border-dashed border-default p-4 text-center text-sm text-muted">
+          <UIcon name="i-lucide-info" class="mx-auto mb-1 size-5" />
+          <p>Visualisasi timeline transisi status akan ditampilkan di Task UI berikutnya.</p>
+          <p class="mt-1 text-xs">
+            Data log sudah tercatat otomatis di backend saat status berubah.
+          </p>
+        </div>
+      </section>
+
+      <!-- Progress Journal -->
+      <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
+        <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold text-highlighted">
+              Progress Journal
+            </h3>
+            <p class="text-xs text-muted">
+              Catatan progres kronologis (diurut naik berdasarkan tanggal kegiatan).
+            </p>
+          </div>
           <UButton
             v-if="claim && canManageClaim"
-            icon="i-lucide-notebook-pen"
+            icon="i-lucide-plus"
             label="Tambah Jurnal"
+            size="sm"
             @click="openProgressForm"
           />
-        </template>
-      </UDashboardNavbar>
-    </template>
+        </header>
 
-    <template #body>
-      <div v-if="claimId === null" class="py-12 text-center text-sm text-muted">
-        ID claim tidak valid. Kembali ke
-        <NuxtLink to="/claims" class="text-primary underline">daftar claim</NuxtLink>.
-      </div>
+        <div v-if="sortedProgressLogs.length === 0" class="rounded-md border border-dashed border-default p-6 text-center text-sm text-muted">
+          <UIcon name="i-lucide-notebook-pen" class="mx-auto mb-2 size-6" />
+          <p>Belum ada jurnal progres untuk claim ini.</p>
+          <p class="mt-1 text-xs">
+            Klik "Tambah Jurnal" untuk mulai mencatat progres.
+          </p>
+        </div>
 
-      <div v-else-if="!isLoading && !claim" class="py-12 text-center text-sm text-muted">
-        Claim tidak ditemukan.
-      </div>
-
-      <div v-else class="flex flex-col gap-6">
-        <!-- Header ringkas -->
-        <section
-          v-if="claim"
-          class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6"
-        >
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <h2 class="font-mono text-lg font-semibold text-highlighted">
-                  {{ claim.claimCode }}
-                </h2>
-                <UBadge
-                  :color="CLAIM_STATUS_COLOR[claim.status]"
-                  variant="subtle"
-                  :label="CLAIM_STATUS_LABEL[claim.status]"
-                />
-              </div>
-              <p class="text-sm text-muted">
-                Dibuat {{ formatDate(claim.createdAt) }}
-                oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
-              </p>
-            </div>
-
-            <!-- Status transition control (Task 1.6) -->
-            <div v-if="canManageClaim && allowedNext.length > 0" class="flex items-center gap-2">
-              <USelect
-                v-model="nextStatus"
-                :items="statusSelectItems"
-                value-key="value"
-                placeholder="Ubah status..."
-                class="min-w-44"
-                :disabled="isStatusUpdating"
-              />
-              <UButton
-                icon="i-lucide-check"
-                label="Terapkan"
-                size="sm"
-                :loading="isStatusUpdating"
-                :disabled="!nextStatus"
-                @click="changeStatus"
-              />
-            </div>
-          </div>
-
-          <div class="mt-4 grid gap-4 sm:grid-cols-3">
-            <div>
-              <p class="text-xs uppercase tracking-wide text-muted">Produk</p>
-              <p class="text-sm font-medium text-highlighted">{{ claim.productName ?? '-' }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-wide text-muted">Model</p>
-              <p class="text-sm font-medium text-highlighted">{{ claim.modelName ?? '-' }}</p>
-              <p v-if="claim.modelSku" class="font-mono text-xs text-muted">{{ claim.modelSku }}</p>
-            </div>
-            <div>
-              <p class="text-xs uppercase tracking-wide text-muted">Defect</p>
-              <p class="text-sm font-medium text-highlighted">{{ claim.defectName ?? '-' }}</p>
-              <p v-if="claim.defectCode" class="font-mono text-xs text-muted">{{ claim.defectCode }}</p>
-            </div>
-            <div class="sm:col-span-3">
-              <p class="text-xs uppercase tracking-wide text-muted">Sumber</p>
-              <p class="text-sm text-highlighted">{{ claim.source }}</p>
-            </div>
-            <div class="sm:col-span-3">
-              <p class="text-xs uppercase tracking-wide text-muted">Deskripsi</p>
-              <p class="whitespace-pre-line text-sm text-highlighted">{{ claim.description }}</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Issue Photos (Task 2.6) -->
-        <IssuePhotosSection
-          :claim-id="claimId"
-          :photos="photos"
-          :can-manage="canManageClaim"
-          :photos-api-available="photosApiAvailable"
-          @updated="onPhotosUpdated"
-        />
-
-        <!-- Status Timeline placeholder (riwayat transisi) -->
-        <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
-          <header class="mb-3 flex items-center justify-between">
-            <div>
-              <h3 class="text-base font-semibold text-highlighted">Status Timeline</h3>
-              <p class="text-xs text-muted">Riwayat transisi status klaim.</p>
-            </div>
-            <UIcon name="i-lucide-clock" class="size-4 text-muted" />
-          </header>
-          <div class="rounded-md border border-dashed border-default p-4 text-center text-sm text-muted">
-            <UIcon name="i-lucide-info" class="mx-auto mb-1 size-5" />
-            <p>Visualisasi timeline transisi status akan ditampilkan di Task UI berikutnya.</p>
-            <p class="mt-1 text-xs">Data log sudah tercatat otomatis di backend saat status berubah.</p>
-          </div>
-        </section>
-
-        <!-- Progress Journal -->
-        <section class="rounded-lg border border-default bg-elevated/30 p-4 sm:p-6">
-          <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="text-base font-semibold text-highlighted">Progress Journal</h3>
-              <p class="text-xs text-muted">
-                Catatan progres kronologis (diurut naik berdasarkan tanggal kegiatan).
-              </p>
-            </div>
-            <UButton
-              v-if="claim && canManageClaim"
-              icon="i-lucide-plus"
-              label="Tambah Jurnal"
-              size="sm"
-              @click="openProgressForm"
-            />
-          </header>
-
-          <div v-if="sortedProgressLogs.length === 0" class="rounded-md border border-dashed border-default p-6 text-center text-sm text-muted">
-            <UIcon name="i-lucide-notebook-pen" class="mx-auto mb-2 size-6" />
-            <p>Belum ada jurnal progres untuk claim ini.</p>
-            <p class="mt-1 text-xs">Klik "Tambah Jurnal" untuk mulai mencatat progres.</p>
-          </div>
-
-          <ol v-else class="relative space-y-4 border-l border-default pl-5">
-            <li
-              v-for="log in sortedProgressLogs"
-              :key="log.id"
-              class="relative"
-            >
-              <span class="absolute -left-7 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-elevated/30">
-                <UIcon name="i-lucide-dot" class="size-3" />
-              </span>
-              <article class="rounded-md border border-default bg-default p-4">
-                <header class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <div class="text-sm font-medium text-highlighted">
-                    {{ formatDateOnly(log.progressDate) }}
-                  </div>
-                  <div class="text-xs text-muted">
-                    {{ log.createdByName ?? log.createdBy }} • {{ formatDate(log.createdAt) }}
-                  </div>
-                </header>
-                <!--
+        <ol v-else class="relative space-y-4 border-l border-default pl-5">
+          <li
+            v-for="log in sortedProgressLogs"
+            :key="log.id"
+            class="relative"
+          >
+            <span class="absolute -left-7 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-elevated/30">
+              <UIcon name="i-lucide-dot" class="size-3" />
+            </span>
+            <article class="rounded-md border border-default bg-default p-4">
+              <header class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-sm font-medium text-highlighted">
+                  {{ formatDateOnly(log.progressDate) }}
+                </div>
+                <div class="text-xs text-muted">
+                  {{ log.createdByName ?? log.createdBy }} • {{ formatDate(log.createdAt) }}
+                </div>
+              </header>
+              <!--
                   Output WYSIWYG dirender di sini. Catatan: untuk hardening,
                   backend harus sanitize HTML sebelum disimpan (lihat Task 1.7
                   notes). Saat MVP, klien mempercayai output editor.
                 -->
-                <div
-                  class="prose prose-sm max-w-none text-highlighted dark:prose-invert prose-headings:text-highlighted prose-a:text-primary prose-img:rounded-md"
-                  v-html="log.notes"
-                />
-              </article>
-            </li>
-          </ol>
-        </section>
-      </div>
+              <div
+                class="prose prose-sm max-w-none text-highlighted dark:prose-invert prose-headings:text-highlighted prose-a:text-primary prose-img:rounded-md"
+                v-html="log.notes"
+              />
+            </article>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modal tambah jurnal progres -->
+  <UModal
+    v-model:open="isProgressFormOpen"
+    title="Tambah Jurnal Progres"
+    description="Catat perkembangan terbaru untuk claim ini. Anda dapat memformat teks (bold, list, gambar)."
+    :ui="{ content: 'sm:max-w-2xl', footer: 'justify-end' }"
+  >
+    <template #body>
+      <UForm
+        id="progress-form"
+        :schema="progressSchema"
+        :state="progressFormState"
+        class="space-y-4"
+        @submit="submitProgress"
+      >
+        <UFormField name="progressDate" label="Tanggal Progres" required>
+          <UInput
+            v-model="progressFormState.progressDate"
+            type="date"
+            class="w-full sm:max-w-xs"
+          />
+        </UFormField>
+
+        <UFormField name="notes" label="Catatan" required>
+          <RichTextEditor
+            v-model="progressFormState.notes"
+            placeholder="Tulis catatan progres... (mendukung bold, list, dan upload gambar)"
+            :upload-image="uploadProgressImage"
+            @image-upload-error="onProgressImageUploadError"
+          />
+        </UFormField>
+      </UForm>
     </template>
-
-    <!-- Modal tambah jurnal progres -->
-    <UModal
-      v-model:open="isProgressFormOpen"
-      title="Tambah Jurnal Progres"
-      description="Catat perkembangan terbaru untuk claim ini. Anda dapat memformat teks (bold, list, gambar)."
-      :ui="{ content: 'sm:max-w-2xl', footer: 'justify-end' }"
-    >
-      <template #body>
-        <UForm
-          id="progress-form"
-          :schema="progressSchema"
-          :state="progressFormState"
-          class="space-y-4"
-          @submit="submitProgress"
-        >
-          <UFormField name="progressDate" label="Tanggal Progres" required>
-            <UInput
-              v-model="progressFormState.progressDate"
-              type="date"
-              class="w-full sm:max-w-xs"
-            />
-          </UFormField>
-
-          <UFormField name="notes" label="Catatan" required>
-            <RichTextEditor
-              v-model="progressFormState.notes"
-              placeholder="Tulis catatan progres... (mendukung bold, list, dan upload gambar)"
-              :upload-image="uploadProgressImage"
-              @image-upload-error="onProgressImageUploadError"
-            />
-          </UFormField>
-        </UForm>
-      </template>
-      <template #footer>
-        <UButton
-          label="Batal"
-          color="neutral"
-          variant="outline"
-          :disabled="isSavingProgress || isCleaningProgressDraft"
-          @click="closeProgressForm"
-        />
-        <UButton
-          type="submit"
-          form="progress-form"
-          label="Simpan Jurnal"
-          icon="i-lucide-save"
-          :loading="isSavingProgress"
-          :disabled="isCleaningProgressDraft"
-        />
-      </template>
-    </UModal>
-  </UDashboardPanel>
+    <template #footer>
+      <UButton
+        label="Batal"
+        color="neutral"
+        variant="outline"
+        :disabled="isSavingProgress || isCleaningProgressDraft"
+        @click="closeProgressForm"
+      />
+      <UButton
+        type="submit"
+        form="progress-form"
+        label="Simpan Jurnal"
+        icon="i-lucide-save"
+        :loading="isSavingProgress"
+        :disabled="isCleaningProgressDraft"
+      />
+    </template>
+  </UModal>
 </template>

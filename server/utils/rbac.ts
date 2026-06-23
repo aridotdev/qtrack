@@ -7,11 +7,11 @@ import { auth, roles, type AppRole } from './auth'
  * Resource × Action yang dipakai aplikasi.
  * Dipakai oleh `requireAccess()` untuk guard endpoint API.
  */
-export type AccessAction =
-  | 'create' | 'read' | 'update' | 'delete' | 'export' | 'manage' | 'view'
+export type AccessAction
+  = | 'create' | 'read' | 'update' | 'delete' | 'export' | 'manage' | 'view'
 
-export type AccessResource =
-  | 'app' | 'master' | 'claim' | 'sample' | 'pqa' | 'report'
+export type AccessResource
+  = | 'app' | 'master' | 'claim' | 'sample' | 'pqa' | 'report'
 
 /**
  * Memastikan user sudah login.
