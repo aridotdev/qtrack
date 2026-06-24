@@ -15,6 +15,7 @@
     "typecheck": "nuxt typecheck",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
     "db:seed:admin": "tsx server/database/seed-admin.ts",
     "db:seed:fk-backfill": "tsx server/database/seed-fk-backfill.ts"
   },
