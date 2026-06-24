@@ -306,10 +306,6 @@ async function onPhotosUpdated() {
   await Promise.all([refreshPhotos(), refreshClaim()])
 }
 
-function goBack() {
-  router.push('/claims')
-}
-
 // ---------------------------------------------------------------------------
 // Formatters
 // ---------------------------------------------------------------------------
@@ -379,21 +375,23 @@ const sortedProgressLogs = computed(() =>
           >
             <!-- Dokumen Header (status + identitas claim) -->
             <div class="border-b border-default p-6 md:p-8">
-              <div class="mb-2 flex items-center gap-3">
+              <div class="flex justify-between items-start">
+                <div class="mb-6">
+                  <h2 class="font-mono text-3xl font-bold text-highlighted">
+                    {{ claim.claimCode }}
+                  </h2>
+                  <span class="text-xs text-muted">
+                    Dibuat {{ formatDate(claim.createdAt) }}
+                    oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
+                  </span>
+                </div>
                 <UBadge
                   :color="CLAIM_STATUS_COLOR[claim.status]"
                   variant="subtle"
                   :label="CLAIM_STATUS_LABEL[claim.status]"
+                  size="xl"
                 />
-                <span class="text-sm text-muted">
-                  Dibuat {{ formatDate(claim.createdAt) }}
-                  oleh <span class="font-medium text-highlighted">{{ claim.createdByName ?? claim.createdBy }}</span>
-                </span>
               </div>
-
-              <h2 class="mb-6 font-mono text-3xl font-bold text-highlighted">
-                {{ claim.claimCode }}
-              </h2>
 
               <div class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm md:grid-cols-4">
                 <div>
@@ -411,9 +409,6 @@ const sortedProgressLogs = computed(() =>
                   <p class="font-semibold text-highlighted">
                     {{ claim.modelName ?? '-' }}
                   </p>
-                  <p v-if="claim.modelSku" class="font-mono text-xs text-muted">
-                    {{ claim.modelSku }}
-                  </p>
                 </div>
                 <div>
                   <p class="mb-0.5 text-muted">
@@ -421,9 +416,6 @@ const sortedProgressLogs = computed(() =>
                   </p>
                   <p class="font-semibold text-highlighted">
                     {{ claim.defectName ?? '-' }}
-                  </p>
-                  <p v-if="claim.defectCode" class="font-mono text-xs text-muted">
-                    {{ claim.defectCode }}
                   </p>
                 </div>
                 <div>
